@@ -10,11 +10,20 @@ import type { Room } from "@/lib/database.types";
  *
  *  Subscribes to Supabase Realtime on `rooms` so that if reception marks a
  *  room under maintenance (or back to available) while a guest has this
- *  page open, the list updates on its own — no refresh needed. */
+ *  page open, the list updates on its own — no refresh needed.
+ *
+ *  Some pages mount more than one instance of this hook at once (e.g.
+ *  RoomDetails.tsx calls it directly for "related rooms" AND renders
+ *  <BookingForm>, which also calls it) — a shared hardcoded channel name
+ *  meant the second instance tried to attach a postgres_changes listener to
+ *  a channel the first had already subscribed, which supabase-js throws on,
+ *  crashing the whole page to a blank screen. useId() gives every instance
+ *  its own channel so they never collide. */
 export function useRooms() {
   const [rooms, setRooms] = React.useState<Room[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const instanceId = React.useId();
 
   const load = React.useCallback(async () => {
     const { data, error } = await supabase.from("rooms").select("*").order("price", { ascending: true });
@@ -29,13 +38,13 @@ export function useRooms() {
 
   React.useEffect(() => {
     const channel = supabase
-      .channel("public-rooms-live")
+      .channel(`public-rooms-live-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [load]);
+  }, [load, instanceId]);
 
   return { rooms, loading, error };
 }
@@ -44,6 +53,7 @@ export function useRoom(roomId: string | undefined) {
   const [room, setRoom] = React.useState<Room | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const instanceId = React.useId();
 
   const load = React.useCallback(async () => {
     if (!roomId) {
@@ -62,14 +72,17 @@ export function useRoom(roomId: string | undefined) {
 
   React.useEffect(() => {
     if (!roomId) return;
+    // instanceId keeps this collision-proof if the same room is ever
+    // rendered by two mounted components at once (see useRooms() above for
+    // the crash this pattern otherwise causes).
     const channel = supabase
-      .channel(`public-room-${roomId}-live`)
+      .channel(`public-room-${roomId}-${instanceId}-live`)
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomId}` }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, load]);
+  }, [roomId, load, instanceId]);
 
   return { room, loading, error };
 }
@@ -84,6 +97,7 @@ export type AvailabilityBadge = "available" | "limited" | "full";
  *  rejection, or cancellation anywhere can shift a room's badge. */
 export function useRoomsAvailabilityBadges() {
   const [badges, setBadges] = React.useState<Record<string, AvailabilityBadge>>({});
+  const instanceId = React.useId();
 
   const load = React.useCallback(async () => {
     const { data } = await supabase.rpc("get_rooms_availability_badges", { p_days: 14 });
@@ -100,13 +114,13 @@ export function useRoomsAvailabilityBadges() {
 
   React.useEffect(() => {
     const channel = supabase
-      .channel("rooms-availability-badges-live")
+      .channel(`rooms-availability-badges-live-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [load]);
+  }, [load, instanceId]);
 
   return badges;
 }
