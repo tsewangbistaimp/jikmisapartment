@@ -21,8 +21,12 @@ export function useCreateBooking() {
       // Postgres exclusion-constraint violation code, surfaced as a friendly
       // message even if it somehow slips past the function's own pre-check
       // (e.g. another guest booked the same room a moment earlier).
-      if (error.code === "23P01" || error.message?.toLowerCase().includes("overlap")) {
-        setError("This room was just booked for an overlapping date range. Please choose another room or different dates.");
+      if (
+        error.code === "23P01" ||
+        error.message?.toLowerCase().includes("overlap") ||
+        error.message?.toLowerCase().includes("no longer available")
+      ) {
+        setError("❌ Selected dates are no longer available. Please choose another date.");
       } else {
         setError(error.message);
       }

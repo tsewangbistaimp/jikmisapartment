@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useRooms } from "@/hooks/useRooms";
+import { useRooms, useRoomsAvailabilityBadges } from "@/hooks/useRooms";
 import { useSEO } from "@/hooks/useSEO";
 import { Container, Section } from "@/components/ui/layout-primitives";
 import { RoomCard } from "@/components/rooms/RoomCard";
@@ -9,6 +9,7 @@ import { staggerContainer } from "@/lib/motion";
 export default function Rooms() {
   useSEO("Rooms & Rates", "Browse our fully-equipped serviced apartments with live pricing and availability.");
   const { rooms, loading, error } = useRooms();
+  const badges = useRoomsAvailabilityBadges();
 
   return (
     <div>
@@ -42,7 +43,7 @@ export default function Rooms() {
               className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
             >
               {rooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
+                <RoomCard key={room.id} room={room} badge={badges[room.id]} />
               ))}
             </motion.div>
           )}

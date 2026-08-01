@@ -44,10 +44,10 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   const { quote: priceQuote } = useBookingPrice(roomId, checkIn, checkOut);
   // The calendar only lets guests tap open dates, so a fully-picked range is
   // available by construction — this is the final check right before
-  // submit (e.g. someone else's request or booking landed in the last few
-  // seconds). Treats a still-pending request as blocking too, same as the
-  // database does.
-  const { available, blockedBy } = useDateRangeAvailability(roomId, checkIn, checkOut);
+  // submit (e.g. someone else's confirmed booking landed in the last few
+  // seconds). Only a confirmed booking blocks; another guest's still-
+  // pending request never does.
+  const { available } = useDateRangeAvailability(roomId, checkIn, checkOut);
   const guestCount = watch("guest_count");
   const maxGuests = selectedRoom ? maxGuestsFor(selectedRoom.room_type) : undefined;
   const overCapacity = !!maxGuests && guestCount > maxGuests;
@@ -156,10 +156,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
             {available === false ? (
               <>
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span>
-                  {blockedBy === "pending" ? "Waiting for administrator approval on these dates." : "These dates are already booked."}{" "}
-                  Please choose another date.
-                </span>
+                <span>This room is unavailable for the selected dates. Please choose different dates.</span>
               </>
             ) : available === true ? (
               <>

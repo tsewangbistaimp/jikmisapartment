@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { useRooms } from "@/hooks/useRooms";
+import { useRooms, useRoomsAvailabilityBadges } from "@/hooks/useRooms";
 import { staggerContainer } from "@/lib/motion";
 import { Container, Section, SectionHeading } from "@/components/ui/layout-primitives";
 import { RoomCard } from "@/components/rooms/RoomCard";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 
 export function FeaturedRooms() {
   const { rooms, loading } = useRooms();
+  const badges = useRoomsAvailabilityBadges();
   const featured = rooms.slice(0, 3);
 
   return (
@@ -39,7 +40,7 @@ export function FeaturedRooms() {
             className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
           >
             {featured.map((room) => (
-              <RoomCard key={room.id} room={room} />
+              <RoomCard key={room.id} room={room} badge={badges[room.id]} />
             ))}
           </motion.div>
         )}

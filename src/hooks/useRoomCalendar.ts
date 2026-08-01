@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 export interface CalendarRange {
   start: string;
   end: string;
-  status: "confirmed" | "pending";
 }
 
 function toISO(date: Date) {
@@ -25,12 +24,23 @@ function cacheKey(roomId: string, viewMonth: Date) {
  *  only ever fetches the month being looked at (lazy loading) and revisiting
  *  a month already seen this session is instant (cached).
  *
+ *  Reads through get_room_booked_ranges() (a SECURITY DEFINER RPC), not a
+ *  direct `.from("bookings")` query — public.bookings has never had an anon
+ *  SELECT policy (by design: it holds guest names, phones, totals, notes),
+ *  so a direct query from this logged-out site always silently came back
+ *  empty and the calendar showed every date as available regardless of
+ *  real bookings. The RPC exposes only the two date columns, and only for
+ *  rooms/dates that are actually reserved.
+ *
+ *  Only a CONFIRMED (or checked-in) booking blocks a date. A still-pending
+ *  guest request never blocks another guest from requesting the same
+ *  dates — staff decide which request (if any) to approve — so pending
+ *  bookings are intentionally not represented on this calendar at all.
+ *
  *  Live-updates via Supabase Realtime: subscribes to `bookings` filtered to
- *  this room, so the moment reception approves, rejects, creates, cancels,
- *  or reschedules a booking for this room, the calendar recolors itself with
- *  no page refresh. Confirmed/checked-in bookings and still-pending guest
- *  requests are both returned (with their own `status`) since both make a
- *  date unavailable to a new guest — only the color shown differs. */
+ *  this room, so the moment reception approves, rejects, cancels, or
+ *  reschedules a booking for this room, the calendar recolors itself with
+ *  no page refresh. */
 export function useRoomCalendarMonth(roomId: string | undefined, viewMonth: Date) {
   const [ranges, setRanges] = React.useState<CalendarRange[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -54,18 +64,15 @@ export function useRoomCalendarMonth(roomId: string | undefined, viewMonth: Date
       }
 
       setLoading(true);
-      const { data } = await supabase
-        .from("bookings")
-        .select("check_in, check_out, booking_status")
-        .eq("room_id", roomId)
-        .in("booking_status", ["confirmed", "checked_in", "pending_approval"])
-        .lt("check_in", toISO(end))
-        .gt("check_out", toISO(start));
+      const { data } = await supabase.rpc("get_room_booked_ranges", {
+        p_room_id: roomId,
+        p_from: toISO(start),
+        p_to: toISO(end),
+      });
 
-      const mapped: CalendarRange[] = (data ?? []).map((b) => ({
+      const mapped: CalendarRange[] = ((data as { check_in: string; check_out: string }[]) ?? []).map((b) => ({
         start: b.check_in,
         end: b.check_out,
-        status: b.booking_status === "pending_approval" ? "pending" : "confirmed",
       }));
       monthCache.set(key, mapped);
       setRanges(mapped);
@@ -84,8 +91,8 @@ export function useRoomCalendarMonth(roomId: string | undefined, viewMonth: Date
       .channel(`room-calendar-${roomId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: `room_id=eq.${roomId}` }, () => {
         // A booking for this room changed somewhere (admin approved/
-        // rejected/created/cancelled/rescheduled it, or a new guest request
-        // came in) — the cached months for this room may now be stale.
+        // rejected/created/cancelled/rescheduled it) — the cached months
+        // for this room may now be stale.
         for (const k of Array.from(monthCache.keys())) {
           if (k.startsWith(`${roomId}|`)) monthCache.delete(k);
         }

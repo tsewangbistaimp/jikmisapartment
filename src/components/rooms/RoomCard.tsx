@@ -5,11 +5,19 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { staggerItem } from "@/lib/motion";
 import { maxGuestsFor } from "@/data/content";
 import type { Room } from "@/lib/database.types";
+import type { AvailabilityBadge } from "@/hooks/useRooms";
 import { Button } from "@/components/ui/button";
 
-export function RoomCard({ room }: { room: Room }) {
+const BADGE_CONFIG: Record<AvailabilityBadge, { label: string; dot: string; pill: string }> = {
+  available: { label: "Available", dot: "bg-green-500", pill: "bg-green-50 text-green-700" },
+  limited: { label: "Limited Availability", dot: "bg-amber-500", pill: "bg-amber-50 text-amber-700" },
+  full: { label: "Fully Booked", dot: "bg-red-500", pill: "bg-red-50 text-red-700" },
+};
+
+export function RoomCard({ room, badge }: { room: Room; badge?: AvailabilityBadge }) {
   const unavailable = room.status === "maintenance";
   const maxGuests = maxGuestsFor(room.room_type);
+  const badgeConfig = badge ? BADGE_CONFIG[badge] : null;
 
   return (
     <motion.div
@@ -31,10 +39,16 @@ export function RoomCard({ room }: { room: Room }) {
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
         <p className="absolute bottom-3 left-4 font-display text-lg font-semibold text-white drop-shadow">Room {room.room_number}</p>
-        {unavailable && (
+        {unavailable ? (
           <span className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600">
             Temporarily Unavailable
           </span>
+        ) : (
+          badgeConfig && (
+            <span className={cn("absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold", badgeConfig.pill)}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", badgeConfig.dot)} /> {badgeConfig.label}
+            </span>
+          )
         )}
       </div>
 

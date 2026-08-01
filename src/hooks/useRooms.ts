@@ -74,48 +74,77 @@ export function useRoom(roomId: string | undefined) {
   return { room, loading, error };
 }
 
-export type BookingBlockStatus = "confirmed" | "pending";
-export type BookedRange = { start: string; end: string; status: BookingBlockStatus };
+export type AvailabilityBadge = "available" | "limited" | "full";
+
+/** Live 🟢/🟡/🔴 availability badge per room for the room cards, computed
+ *  from confirmed/checked-in bookings over the next 14 days via the
+ *  get_rooms_availability_badges() RPC (SECURITY DEFINER — public.bookings
+ *  itself has no anon SELECT policy, so this can't be a direct table
+ *  query). Recomputes whenever any booking changes, since an approval,
+ *  rejection, or cancellation anywhere can shift a room's badge. */
+export function useRoomsAvailabilityBadges() {
+  const [badges, setBadges] = React.useState<Record<string, AvailabilityBadge>>({});
+
+  const load = React.useCallback(async () => {
+    const { data } = await supabase.rpc("get_rooms_availability_badges", { p_days: 14 });
+    const map: Record<string, AvailabilityBadge> = {};
+    for (const row of (data as { room_id: string; badge: AvailabilityBadge }[]) ?? []) {
+      map[row.room_id] = row.badge;
+    }
+    setBadges(map);
+  }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  React.useEffect(() => {
+    const channel = supabase
+      .channel("rooms-availability-badges-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [load]);
+
+  return badges;
+}
+
+export type BookedRange = { start: string; end: string };
 
 /** Final, targeted availability check for the exact [checkIn, checkOut)
  *  range the guest has picked — run right before enabling the submit
  *  button, independent of whatever the calendar grid is currently showing.
- *  Treats BOTH a confirmed/checked-in booking AND another guest's still-
- *  pending request as blocking, matching the rule enforced server-side in
- *  create_public_booking(): once a date is requested, nobody else can
- *  request it until staff approve or reject that request. This can never be
- *  trusted as the sole guard against double-booking — the database is. */
+ *  Calls is_room_range_available() (a SECURITY DEFINER RPC) rather than
+ *  querying `bookings` directly, since public.bookings has no anon SELECT
+ *  policy at all — a direct query here would always silently return zero
+ *  rows and this "final safety check" would always (wrongly) say available.
+ *
+ *  Only a CONFIRMED/checked-in booking blocks — a still-pending request
+ *  from another guest never blocks a new request for the same dates; staff
+ *  decide which (if any) to approve. This can never be trusted as the sole
+ *  guard against double-booking on its own — the database's authoritative
+ *  check inside create_public_booking() is. */
 export function useDateRangeAvailability(roomId: string | undefined, checkIn: string, checkOut: string) {
-  // blockedBy: null once a check has completed and found nothing blocking;
-  // undefined before any dates are picked / mid-check (i.e. "unknown yet").
-  const [blockedBy, setBlockedBy] = React.useState<BookingBlockStatus | null | undefined>(undefined);
+  // null once a check has completed; undefined before any dates are picked
+  // or while a check is in flight (i.e. "unknown yet").
+  const [available, setAvailable] = React.useState<boolean | undefined>(undefined);
   const [checking, setChecking] = React.useState(false);
 
   React.useEffect(() => {
     if (!roomId || !checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
-      setBlockedBy(undefined);
+      setAvailable(undefined);
       return;
     }
     let cancelled = false;
     setChecking(true);
-    setBlockedBy(undefined);
+    setAvailable(undefined);
     supabase
-      .from("bookings")
-      .select("booking_status")
-      .eq("room_id", roomId)
-      .in("booking_status", ["confirmed", "checked_in", "pending_approval"])
-      .lt("check_in", checkOut)
-      .gt("check_out", checkIn)
+      .rpc("is_room_range_available", { p_room_id: roomId, p_check_in: checkIn, p_check_out: checkOut })
       .then(({ data }) => {
         if (cancelled) return;
-        const rows = data ?? [];
-        if (rows.some((r) => r.booking_status === "confirmed" || r.booking_status === "checked_in")) {
-          setBlockedBy("confirmed");
-        } else if (rows.some((r) => r.booking_status === "pending_approval")) {
-          setBlockedBy("pending");
-        } else {
-          setBlockedBy(null);
-        }
+        setAvailable(data === true);
         setChecking(false);
       });
     return () => {
@@ -123,7 +152,5 @@ export function useDateRangeAvailability(roomId: string | undefined, checkIn: st
     };
   }, [roomId, checkIn, checkOut]);
 
-  const available = blockedBy === undefined ? null : blockedBy === null;
-
-  return { available, blockedBy, checking };
+  return { available: available === undefined ? null : available, checking };
 }

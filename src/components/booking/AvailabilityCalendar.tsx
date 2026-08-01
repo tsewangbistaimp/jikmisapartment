@@ -21,14 +21,14 @@ function isSameMonth(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
 
-function rangeStatusFor(dateISO: string, ranges: CalendarRange[]): "confirmed" | "pending" | null {
-  const hit = ranges.find((r) => dateISO >= r.start && dateISO < r.end);
-  return hit ? hit.status : null;
+function isBooked(dateISO: string, ranges: CalendarRange[]) {
+  return ranges.some((r) => dateISO >= r.start && dateISO < r.end);
 }
 
-/** True if a candidate [checkIn, checkOut) stay overlaps any existing range,
- *  regardless of status — a still-pending request blocks new requests for
- *  the same dates exactly like a confirmed booking does. */
+/** True if a candidate [checkIn, checkOut) stay overlaps any confirmed
+ *  booking. Only confirmed/checked-in bookings ever appear in `ranges` (see
+ *  useRoomCalendarMonth) — a still-pending request from another guest never
+ *  blocks a new request for the same dates. */
 function rangeConflicts(checkIn: string, checkOut: string, ranges: CalendarRange[]) {
   return ranges.some((r) => checkIn < r.end && checkOut > r.start);
 }
@@ -81,7 +81,7 @@ export function AvailabilityCalendar({ roomId, roomStatus, checkIn, checkOut, di
     }
 
     if (rangeConflicts(checkIn, dateISO, ranges)) {
-      setWarning("Please choose another date — a booked or pending stay falls inside that range.");
+      setWarning("Please choose another date — this room is already booked inside that range.");
       return;
     }
 
@@ -141,13 +141,11 @@ export function AvailabilityCalendar({ roomId, roomStatus, checkIn, checkOut, di
             if (!date) return <div key={i} />;
             const dateISO = toISO(date);
             const past = dateISO < today;
-            const blockStatus = rangeStatusFor(dateISO, ranges);
-            const isConfirmedBooked = blockStatus === "confirmed";
-            const isPending = blockStatus === "pending";
+            const booked = isBooked(dateISO, ranges);
             const isCheckIn = dateISO === checkIn;
             const isCheckOut = dateISO === checkOut;
             const inRange = !!checkIn && !!checkOut && dateISO > checkIn && dateISO < checkOut;
-            const unavailable = past || isConfirmedBooked || isPending;
+            const unavailable = past || booked;
 
             return (
               <div key={i} className="flex justify-center py-0.5">
@@ -155,20 +153,11 @@ export function AvailabilityCalendar({ roomId, roomStatus, checkIn, checkOut, di
                   type="button"
                   disabled={unavailable}
                   onClick={() => handleDayClick(dateISO)}
-                  title={
-                    isConfirmedBooked
-                      ? "These dates are already booked."
-                      : isPending
-                        ? "Waiting for administrator approval."
-                        : past
-                          ? undefined
-                          : "Selected room is available."
-                  }
+                  title={booked ? "Already Booked" : past ? "Room Not Available" : "Selected room is available."}
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors",
                     past && "cursor-not-allowed text-slate-300",
-                    isConfirmedBooked && "cursor-not-allowed bg-red-50 text-red-300 line-through",
-                    isPending && "cursor-not-allowed bg-amber-50 text-amber-500 line-through",
+                    booked && "cursor-not-allowed bg-red-50 text-red-400 line-through",
                     !unavailable && !isCheckIn && !isCheckOut && !inRange && "text-navy-700 hover:bg-gold-50",
                     inRange && "rounded-none bg-gold-100 text-navy-800",
                     (isCheckIn || isCheckOut) && "bg-gold-500 font-semibold text-white hover:bg-gold-500"
@@ -190,10 +179,7 @@ export function AvailabilityCalendar({ roomId, roomStatus, checkIn, checkOut, di
           <span className="h-2.5 w-2.5 rounded-full bg-red-400" /> Booked
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Pending Approval
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-300" /> Maintenance
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-300" /> Past Dates
         </span>
       </div>
 
