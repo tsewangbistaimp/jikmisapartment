@@ -100,3 +100,48 @@ export function useRoomAvailability(roomId: string | undefined, checkIn: string,
 
   return { available, checking };
 }
+
+export type BookedRange = { start: string; end: string };
+
+/** Loads every confirmed/checked-in booking's [check_in, check_out) range for
+ *  a room, from today onward, so the booking calendar can shade out dates
+ *  that are already taken. This is the same "half-open range" the exclusion
+ *  constraint and create_public_booking() use, so a date shown as free here
+ *  will also be accepted by the database. */
+export function useRoomBookedRanges(roomId: string | undefined) {
+  const [ranges, setRanges] = React.useState<BookedRange[]>([]);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!roomId) {
+      setRanges([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    supabase
+      .from("bookings")
+      .select("check_in, check_out")
+      .eq("room_id", roomId)
+      .in("booking_status", ["confirmed", "checked_in"])
+      .gte("check_out", todayISOForRanges())
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setRanges([]);
+        } else {
+          setRanges((data ?? []).map((b) => ({ start: b.check_in, end: b.check_out })));
+        }
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId]);
+
+  return { ranges, loading };
+}
+
+function todayISOForRanges() {
+  return new Date().toISOString().slice(0, 10);
+}

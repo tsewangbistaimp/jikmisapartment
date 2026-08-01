@@ -5,12 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { CalendarDays, Users, ShieldCheck } from "lucide-react";
 import { publicBookingFormSchema, type PublicBookingFormValues } from "@/lib/schemas";
-import { formatCurrency, nightsBetween, todayISO, addDaysISO } from "@/lib/utils";
+import { formatCurrency, nightsBetween } from "@/lib/utils";
 import { maxGuestsFor } from "@/data/content";
-import { useRooms, useRoomAvailability } from "@/hooks/useRooms";
+import { useRooms, useRoomBookedRanges } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useCreateBooking";
 import { Label, Input, Textarea, Select, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AvailabilityCalendar } from "@/components/booking/AvailabilityCalendar";
 
 export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
     register,
     handleSubmit,
     watch,
+    setValue,
     control,
     formState: { errors },
   } = useForm<PublicBookingFormValues & { room_id: string }>({
@@ -28,8 +30,8 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
     defaultValues: {
       room_id: initialRoomId ?? "",
       guest_count: 1,
-      check_in: todayISO(),
-      check_out: addDaysISO(todayISO(), 1),
+      check_in: "",
+      check_out: "",
     },
   });
 
@@ -38,10 +40,23 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   const checkOut = watch("check_out");
   const nights = nightsBetween(checkIn, checkOut);
   const selectedRoom = rooms.find((r) => r.id === roomId);
-  const { available, checking } = useRoomAvailability(roomId, checkIn, checkOut);
+  const { ranges: bookedRanges, loading: rangesLoading } = useRoomBookedRanges(roomId);
   const guestCount = watch("guest_count");
   const maxGuests = selectedRoom ? maxGuestsFor(selectedRoom.room_type) : undefined;
   const overCapacity = !!maxGuests && guestCount > maxGuests;
+  const datesSelected = !!checkIn && !!checkOut;
+  // The calendar only lets guests tap open dates, so a fully-picked range is
+  // available by construction — this just guards the moment right before
+  // submit (e.g. someone else booked it in the last few seconds).
+  const available = datesSelected ? !bookedRanges.some((r) => checkIn < r.end && checkOut > r.start) : null;
+
+  // Picking a different room resets the date selection, since availability
+  // is per-room.
+  function handleRoomChange(newRoomId: string) {
+    setValue("room_id", newRoomId, { shouldValidate: true });
+    setValue("check_in", "");
+    setValue("check_out", "");
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     if (!values.room_id) {
@@ -72,38 +87,53 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
           <CalendarDays className="h-4 w-4 text-gold-600" /> Stay Details
         </p>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Label htmlFor="room_id">Room</Label>
-            <Controller
-              control={control}
-              name="room_id"
-              render={({ field }) => (
-                <Select id="room_id" {...field} disabled={roomsLoading}>
-                  <option value="">{roomsLoading ? "Loading rooms…" : "Select a room"}</option>
-                  {rooms
-                    .filter((r) => r.status !== "maintenance")
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        Room {r.room_number} — {r.room_type} ({formatCurrency(r.price)}/night)
-                      </option>
-                    ))}
-                </Select>
-              )}
+        <div>
+          <Label htmlFor="room_id">Room</Label>
+          <Controller
+            control={control}
+            name="room_id"
+            render={({ field }) => (
+              <Select
+                id="room_id"
+                name={field.name}
+                ref={field.ref}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChange={(e) => handleRoomChange(e.target.value)}
+                disabled={roomsLoading}
+              >
+                <option value="">{roomsLoading ? "Loading rooms…" : "Select a room"}</option>
+                {rooms
+                  .filter((r) => r.status !== "maintenance")
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      Room {r.room_number} — {r.room_type} ({formatCurrency(r.price)}/night)
+                    </option>
+                  ))}
+              </Select>
+            )}
+          />
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+          {!roomId ? (
+            <p className="py-6 text-center text-sm text-slate-400">Select a room above to see its live availability calendar.</p>
+          ) : (
+            <AvailabilityCalendar
+              checkIn={checkIn}
+              checkOut={checkOut}
+              bookedRanges={bookedRanges}
+              loading={rangesLoading}
+              onChange={(ci, co) => {
+                setValue("check_in", ci, { shouldValidate: true });
+                setValue("check_out", co, { shouldValidate: true });
+              }}
             />
-          </div>
+          )}
+        </div>
+        <FieldError message={errors.check_in?.message ?? errors.check_out?.message} />
 
-          <div>
-            <Label htmlFor="check_in">Check-in</Label>
-            <Input id="check_in" type="date" min={todayISO()} {...register("check_in")} />
-            <FieldError message={errors.check_in?.message} />
-          </div>
-          <div>
-            <Label htmlFor="check_out">Check-out</Label>
-            <Input id="check_out" type="date" min={addDaysISO(checkIn || todayISO(), 1)} {...register("check_out")} />
-            <FieldError message={errors.check_out?.message} />
-          </div>
-
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="guest_count">Guests{maxGuests ? ` (max ${maxGuests})` : ""}</Label>
             <Input id="guest_count" type="number" min={1} max={maxGuests} {...register("guest_count", { valueAsNumber: true })} />
@@ -116,11 +146,9 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
 
           <div className="flex items-end">
             {roomId && nights > 0 && (
-              <div className="w-full rounded-xl bg-white px-4 py-2.5 text-sm">
+              <div className="w-full rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
                 <span className="text-slate-400">{nights} night{nights === 1 ? "" : "s"} · </span>
-                {checking ? (
-                  <span className="text-slate-400">Checking availability…</span>
-                ) : available === false ? (
+                {available === false ? (
                   <span className="font-semibold text-red-500">Not available for these dates</span>
                 ) : selectedRoom ? (
                   <span className="font-semibold text-navy-800">{formatCurrency(selectedRoom.price * nights)} total</span>
@@ -163,8 +191,14 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
 
       <FieldError message={error ?? undefined} />
 
-      <Button type="submit" size="lg" className="w-full" loading={submitting} disabled={available === false || overCapacity}>
-        {submitting ? "Confirming your booking…" : "Book Now"}
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        loading={submitting}
+        disabled={!roomId || !datesSelected || available === false || overCapacity}
+      >
+        {!roomId ? "Select a Room to Continue" : !datesSelected ? "Select Your Dates to Continue" : submitting ? "Confirming your booking…" : "Book Now"}
       </Button>
 
       <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
