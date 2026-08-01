@@ -76,6 +76,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
       p_nationality: values.nationality || null,
       p_passport_number: values.passport_number || null,
       p_notes: values.notes || null,
+      p_email: values.email || null,
     });
 
     if (result) {
@@ -258,6 +259,14 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
             <Label htmlFor="phone">Phone Number</Label>
             <Input id="phone" placeholder="98XXXXXXXX" {...register("phone")} />
             <FieldError message={errors.phone?.message} />
+          </div>
+          <div>
+            <Label htmlFor="email">Email (optional)</Label>
+            <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
+            <FieldError message={errors.email?.message} />
+            {!errors.email && (
+              <p className="mt-1.5 text-xs text-slate-400">We'll email your booking confirmation here if you give us an address.</p>
+            )}
           </div>
           <div>
             <Label htmlFor="nationality">Nationality (optional)</Label>

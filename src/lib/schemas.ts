@@ -19,6 +19,11 @@ export const publicBookingFormSchema = z
       .trim()
       .min(7, "Enter a valid phone number")
       .regex(/^[0-9+\-\s()]+$/, "Enter a valid phone number"),
+    // Optional — but if the guest gives one, it's used to send the booking
+    // confirmation/rejection email from Jikmis Apartment's Gmail account.
+    // Empty string is allowed (no email given) without failing validation;
+    // an actually-entered value must look like a real address.
+    email: z.union([z.string().trim().email("Enter a valid email address"), z.literal("")]).optional(),
     nationality: z.string().trim().optional(),
     passport_number: z.string().trim().optional(),
     guest_count: z.number().int().min(1, "At least 1 guest"),

@@ -70,4 +70,8 @@ export interface CreatePublicBookingArgs {
   p_nationality?: string | null;
   p_passport_number?: string | null;
   p_notes?: string | null;
+  /** Optional — when given, admin approval/rejection emails go here (sent
+   *  from Jikmis Apartment's Gmail account, never from the guest's own
+   *  address). */
+  p_email?: string | null;
 }
