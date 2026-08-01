@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { CalendarDays, Users, ShieldCheck, TrendingDown, Clock } from "lucide-react";
+import { CalendarDays, Users, ShieldCheck, TrendingDown, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { publicBookingFormSchema, type PublicBookingFormValues } from "@/lib/schemas";
-import { formatCurrency, nightsBetween } from "@/lib/utils";
+import { formatCurrency, nightsBetween, cn } from "@/lib/utils";
 import { maxGuestsFor } from "@/data/content";
-import { useRooms, useRoomBookedRanges } from "@/hooks/useRooms";
+import { useRooms, useDateRangeAvailability } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useCreateBooking";
 import { useBookingPrice } from "@/hooks/useBookingPrice";
 import { Label, Input, Textarea, Select, FieldError } from "@/components/ui/input";
@@ -41,16 +41,17 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   const checkOut = watch("check_out");
   const nights = nightsBetween(checkIn, checkOut);
   const selectedRoom = rooms.find((r) => r.id === roomId);
-  const { ranges: bookedRanges, loading: rangesLoading } = useRoomBookedRanges(roomId);
   const { quote: priceQuote } = useBookingPrice(roomId, checkIn, checkOut);
+  // The calendar only lets guests tap open dates, so a fully-picked range is
+  // available by construction — this is the final check right before
+  // submit (e.g. someone else's request or booking landed in the last few
+  // seconds). Treats a still-pending request as blocking too, same as the
+  // database does.
+  const { available, blockedBy } = useDateRangeAvailability(roomId, checkIn, checkOut);
   const guestCount = watch("guest_count");
   const maxGuests = selectedRoom ? maxGuestsFor(selectedRoom.room_type) : undefined;
   const overCapacity = !!maxGuests && guestCount > maxGuests;
   const datesSelected = !!checkIn && !!checkOut;
-  // The calendar only lets guests tap open dates, so a fully-picked range is
-  // available by construction — this just guards the moment right before
-  // submit (e.g. someone else booked it in the last few seconds).
-  const available = datesSelected ? !bookedRanges.some((r) => checkIn < r.end && checkOut > r.start) : null;
 
   // Picking a different room resets the date selection, since availability
   // is per-room.
@@ -122,10 +123,10 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
             <p className="py-6 text-center text-sm text-slate-400">Select a room above to see its live availability calendar.</p>
           ) : (
             <AvailabilityCalendar
+              roomId={roomId}
+              roomStatus={selectedRoom?.status}
               checkIn={checkIn}
               checkOut={checkOut}
-              bookedRanges={bookedRanges}
-              loading={rangesLoading}
               onChange={(ci, co) => {
                 setValue("check_in", ci, { shouldValidate: true });
                 setValue("check_out", co, { shouldValidate: true });
@@ -134,6 +135,32 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
           )}
         </div>
         <FieldError message={errors.check_in?.message ?? errors.check_out?.message} />
+
+        {datesSelected && (
+          <div
+            className={cn(
+              "mt-3 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm",
+              available === false ? "bg-red-50 text-red-600" : available === true ? "bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-500"
+            )}
+          >
+            {available === false ? (
+              <>
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>
+                  {blockedBy === "pending" ? "Waiting for administrator approval on these dates." : "These dates are already booked."}{" "}
+                  Please choose another date.
+                </span>
+              </>
+            ) : available === true ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>Selected room is available.</span>
+              </>
+            ) : (
+              <span>Checking availability…</span>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -147,14 +174,10 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
           </div>
 
           <div className="flex items-end">
-            {roomId && nights > 0 && (
+            {roomId && nights > 0 && available !== false && priceQuote && (
               <div className="w-full rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
                 <span className="text-slate-400">{nights} night{nights === 1 ? "" : "s"} · </span>
-                {available === false ? (
-                  <span className="font-semibold text-red-500">Not available for these dates</span>
-                ) : priceQuote ? (
-                  <span className="font-semibold text-navy-800">{formatCurrency(priceQuote.total_amount)} total</span>
-                ) : null}
+                <span className="font-semibold text-navy-800">{formatCurrency(priceQuote.total_amount)} total</span>
               </div>
             )}
           </div>
@@ -178,6 +201,12 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
                   <span>{formatCurrency(priceQuote.monthly_rate)}</span>
                 </div>
               )}
+              {priceQuote.long_term_daily_rate != null && (
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>Long-Term Daily Rate</span>
+                  <span>{formatCurrency(priceQuote.long_term_daily_rate)}/night</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-slate-500">
                 <span>Nights</span>
                 <span>{priceQuote.nights}</span>
@@ -198,8 +227,9 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
               <div className="mt-3 flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
                 <TrendingDown className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
-                  <span className="font-semibold">Long-Term Stay Rate Applied.</span> Stays of 30 nights or more get our flat monthly
-                  apartment rate instead of the nightly rate — automatically, no need to ask.
+                  <span className="font-semibold">Long-Term Apartment Pricing Applied.</span> Stays of 30 nights or more are charged at
+                  the prorated long-term daily rate ({formatCurrency(priceQuote.long_term_daily_rate ?? 0)}/night = monthly rate ÷ 30)
+                  instead of the regular nightly rate — automatically, no need to ask.
                 </span>
               </div>
             )}

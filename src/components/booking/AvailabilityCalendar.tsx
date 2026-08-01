@@ -1,7 +1,7 @@
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { BookedRange } from "@/hooks/useRooms";
+import { useRoomCalendarMonth, type CalendarRange } from "@/hooks/useRoomCalendar";
 
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -21,14 +21,15 @@ function isSameMonth(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
 
-/** True if the given day (start of day) falls within any booked [start, end)
- *  range — i.e. the room is occupied that night. */
-function isBooked(dateISO: string, ranges: BookedRange[]) {
-  return ranges.some((r) => dateISO >= r.start && dateISO < r.end);
+function rangeStatusFor(dateISO: string, ranges: CalendarRange[]): "confirmed" | "pending" | null {
+  const hit = ranges.find((r) => dateISO >= r.start && dateISO < r.end);
+  return hit ? hit.status : null;
 }
 
-/** True if a candidate [checkIn, checkOut) stay overlaps any booked range. */
-function rangeConflicts(checkIn: string, checkOut: string, ranges: BookedRange[]) {
+/** True if a candidate [checkIn, checkOut) stay overlaps any existing range,
+ *  regardless of status — a still-pending request blocks new requests for
+ *  the same dates exactly like a confirmed booking does. */
+function rangeConflicts(checkIn: string, checkOut: string, ranges: CalendarRange[]) {
   return ranges.some((r) => checkIn < r.end && checkOut > r.start);
 }
 
@@ -45,25 +46,27 @@ function buildMonthGrid(viewMonth: Date) {
 }
 
 interface AvailabilityCalendarProps {
+  roomId: string;
+  roomStatus?: string;
   checkIn: string;
   checkOut: string;
-  bookedRanges: BookedRange[];
-  loading?: boolean;
   disabled?: boolean;
   onChange: (checkIn: string, checkOut: string) => void;
 }
 
-export function AvailabilityCalendar({ checkIn, checkOut, bookedRanges, loading, disabled, onChange }: AvailabilityCalendarProps) {
+export function AvailabilityCalendar({ roomId, roomStatus, checkIn, checkOut, disabled, onChange }: AvailabilityCalendarProps) {
   const today = React.useMemo(() => toISO(new Date()), []);
   const currentMonthStart = React.useMemo(() => startOfMonth(new Date()), []);
   const [viewMonth, setViewMonth] = React.useState(() => startOfMonth(checkIn ? fromISO(checkIn) : new Date()));
   const [warning, setWarning] = React.useState<string | null>(null);
 
+  const { ranges, loading } = useRoomCalendarMonth(roomId, viewMonth);
   const grid = React.useMemo(() => buildMonthGrid(viewMonth), [viewMonth]);
   const canGoPrev = !isSameMonth(viewMonth, currentMonthStart);
+  const roomUnderMaintenance = roomStatus === "maintenance";
 
   function handleDayClick(dateISO: string) {
-    if (disabled) return;
+    if (disabled || roomUnderMaintenance) return;
     setWarning(null);
 
     if (!checkIn || (checkIn && checkOut)) {
@@ -77,12 +80,22 @@ export function AvailabilityCalendar({ checkIn, checkOut, bookedRanges, loading,
       return;
     }
 
-    if (rangeConflicts(checkIn, dateISO, bookedRanges)) {
-      setWarning("Another booking starts before that date. Pick an earlier check-out or a different check-in.");
+    if (rangeConflicts(checkIn, dateISO, ranges)) {
+      setWarning("Please choose another date — a booked or pending stay falls inside that range.");
       return;
     }
 
     onChange(checkIn, dateISO);
+  }
+
+  if (roomUnderMaintenance) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-xl bg-slate-50 py-10 text-center">
+        <Ban className="h-5 w-5 text-slate-400" />
+        <p className="text-sm font-medium text-slate-500">This room is temporarily unavailable (under maintenance).</p>
+        <p className="text-xs text-slate-400">Please choose another room.</p>
+      </div>
+    );
   }
 
   return (
@@ -128,11 +141,13 @@ export function AvailabilityCalendar({ checkIn, checkOut, bookedRanges, loading,
             if (!date) return <div key={i} />;
             const dateISO = toISO(date);
             const past = dateISO < today;
-            const booked = isBooked(dateISO, bookedRanges);
+            const blockStatus = rangeStatusFor(dateISO, ranges);
+            const isConfirmedBooked = blockStatus === "confirmed";
+            const isPending = blockStatus === "pending";
             const isCheckIn = dateISO === checkIn;
             const isCheckOut = dateISO === checkOut;
             const inRange = !!checkIn && !!checkOut && dateISO > checkIn && dateISO < checkOut;
-            const unavailable = past || booked;
+            const unavailable = past || isConfirmedBooked || isPending;
 
             return (
               <div key={i} className="flex justify-center py-0.5">
@@ -140,11 +155,20 @@ export function AvailabilityCalendar({ checkIn, checkOut, bookedRanges, loading,
                   type="button"
                   disabled={unavailable}
                   onClick={() => handleDayClick(dateISO)}
-                  title={booked ? "Not available" : past ? undefined : "Available"}
+                  title={
+                    isConfirmedBooked
+                      ? "These dates are already booked."
+                      : isPending
+                        ? "Waiting for administrator approval."
+                        : past
+                          ? undefined
+                          : "Selected room is available."
+                  }
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors",
-                    unavailable && "cursor-not-allowed text-slate-300",
-                    booked && "bg-red-50 text-red-300 line-through",
+                    past && "cursor-not-allowed text-slate-300",
+                    isConfirmedBooked && "cursor-not-allowed bg-red-50 text-red-300 line-through",
+                    isPending && "cursor-not-allowed bg-amber-50 text-amber-500 line-through",
                     !unavailable && !isCheckIn && !isCheckOut && !inRange && "text-navy-700 hover:bg-gold-50",
                     inRange && "rounded-none bg-gold-100 text-navy-800",
                     (isCheckIn || isCheckOut) && "bg-gold-500 font-semibold text-white hover:bg-gold-500"
@@ -160,13 +184,16 @@ export function AvailabilityCalendar({ checkIn, checkOut, bookedRanges, loading,
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-gold-500" /> Selected
+          <span className="h-2.5 w-2.5 rounded-full bg-green-500" /> Available
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full border border-slate-300 bg-white" /> Available
+          <span className="h-2.5 w-2.5 rounded-full bg-red-400" /> Booked
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-red-100" /> Booked
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Pending Approval
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-300" /> Maintenance
         </span>
       </div>
 

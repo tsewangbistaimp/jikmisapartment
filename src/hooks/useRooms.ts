@@ -6,29 +6,36 @@ import type { Room } from "@/lib/database.types";
  *  20260801070000_public_booking_website.sql) — i.e. the exact same `rooms`
  *  table the admin app uses, read-only. Rooms under maintenance are excluded
  *  from what guests can book, but shown as "temporarily unavailable" rather
- *  than hidden, so the room list doesn't look incomplete. */
+ *  than hidden, so the room list doesn't look incomplete.
+ *
+ *  Subscribes to Supabase Realtime on `rooms` so that if reception marks a
+ *  room under maintenance (or back to available) while a guest has this
+ *  page open, the list updates on its own — no refresh needed. */
 export function useRooms() {
   const [rooms, setRooms] = React.useState<Room[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    supabase
-      .from("rooms")
-      .select("*")
-      .order("price", { ascending: true })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) setError(error.message);
-        setRooms((data as Room[]) ?? []);
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const load = React.useCallback(async () => {
+    const { data, error } = await supabase.from("rooms").select("*").order("price", { ascending: true });
+    if (error) setError(error.message);
+    setRooms((data as Room[]) ?? []);
+    setLoading(false);
   }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  React.useEffect(() => {
+    const channel = supabase
+      .channel("public-rooms-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [load]);
 
   return { rooms, loading, error };
 }
@@ -38,59 +45,77 @@ export function useRoom(roomId: string | undefined) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
+  const load = React.useCallback(async () => {
     if (!roomId) {
       setLoading(false);
       return;
     }
-    let cancelled = false;
-    setLoading(true);
-    supabase
-      .from("rooms")
-      .select("*")
-      .eq("id", roomId)
-      .single()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) setError(error.message);
-        setRoom((data as Room) ?? null);
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    const { data, error } = await supabase.from("rooms").select("*").eq("id", roomId).single();
+    if (error) setError(error.message);
+    setRoom((data as Room) ?? null);
+    setLoading(false);
   }, [roomId]);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  React.useEffect(() => {
+    if (!roomId) return;
+    const channel = supabase
+      .channel(`public-room-${roomId}-live`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomId}` }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomId, load]);
 
   return { room, loading, error };
 }
 
-/** Checks whether a room has any confirmed/checked-in booking overlapping the
- *  given date range — the same "half-open range" overlap rule the database's
- *  own exclusion constraint enforces, checked here first purely for instant
- *  UI feedback. The database (via create_public_booking / the exclusion
- *  constraint) is still the real, final authority — this can never be
- *  trusted as the sole guard against double-booking. */
-export function useRoomAvailability(roomId: string | undefined, checkIn: string, checkOut: string) {
-  const [available, setAvailable] = React.useState<boolean | null>(null);
+export type BookingBlockStatus = "confirmed" | "pending";
+export type BookedRange = { start: string; end: string; status: BookingBlockStatus };
+
+/** Final, targeted availability check for the exact [checkIn, checkOut)
+ *  range the guest has picked — run right before enabling the submit
+ *  button, independent of whatever the calendar grid is currently showing.
+ *  Treats BOTH a confirmed/checked-in booking AND another guest's still-
+ *  pending request as blocking, matching the rule enforced server-side in
+ *  create_public_booking(): once a date is requested, nobody else can
+ *  request it until staff approve or reject that request. This can never be
+ *  trusted as the sole guard against double-booking — the database is. */
+export function useDateRangeAvailability(roomId: string | undefined, checkIn: string, checkOut: string) {
+  // blockedBy: null once a check has completed and found nothing blocking;
+  // undefined before any dates are picked / mid-check (i.e. "unknown yet").
+  const [blockedBy, setBlockedBy] = React.useState<BookingBlockStatus | null | undefined>(undefined);
   const [checking, setChecking] = React.useState(false);
 
   React.useEffect(() => {
     if (!roomId || !checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
-      setAvailable(null);
+      setBlockedBy(undefined);
       return;
     }
     let cancelled = false;
     setChecking(true);
+    setBlockedBy(undefined);
     supabase
       .from("bookings")
-      .select("check_in, check_out")
+      .select("booking_status")
       .eq("room_id", roomId)
-      .in("booking_status", ["confirmed", "checked_in"])
+      .in("booking_status", ["confirmed", "checked_in", "pending_approval"])
       .lt("check_in", checkOut)
       .gt("check_out", checkIn)
       .then(({ data }) => {
         if (cancelled) return;
-        setAvailable((data?.length ?? 0) === 0);
+        const rows = data ?? [];
+        if (rows.some((r) => r.booking_status === "confirmed" || r.booking_status === "checked_in")) {
+          setBlockedBy("confirmed");
+        } else if (rows.some((r) => r.booking_status === "pending_approval")) {
+          setBlockedBy("pending");
+        } else {
+          setBlockedBy(null);
+        }
         setChecking(false);
       });
     return () => {
@@ -98,50 +123,7 @@ export function useRoomAvailability(roomId: string | undefined, checkIn: string,
     };
   }, [roomId, checkIn, checkOut]);
 
-  return { available, checking };
-}
+  const available = blockedBy === undefined ? null : blockedBy === null;
 
-export type BookedRange = { start: string; end: string };
-
-/** Loads every confirmed/checked-in booking's [check_in, check_out) range for
- *  a room, from today onward, so the booking calendar can shade out dates
- *  that are already taken. This is the same "half-open range" the exclusion
- *  constraint and create_public_booking() use, so a date shown as free here
- *  will also be accepted by the database. */
-export function useRoomBookedRanges(roomId: string | undefined) {
-  const [ranges, setRanges] = React.useState<BookedRange[]>([]);
-  const [loading, setLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!roomId) {
-      setRanges([]);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    supabase
-      .from("bookings")
-      .select("check_in, check_out")
-      .eq("room_id", roomId)
-      .in("booking_status", ["confirmed", "checked_in"])
-      .gte("check_out", todayISOForRanges())
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          setRanges([]);
-        } else {
-          setRanges((data ?? []).map((b) => ({ start: b.check_in, end: b.check_out })));
-        }
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [roomId]);
-
-  return { ranges, loading };
-}
-
-function todayISOForRanges() {
-  return new Date().toISOString().slice(0, 10);
+  return { available, blockedBy, checking };
 }
