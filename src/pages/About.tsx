@@ -1,14 +1,30 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle2, PlayCircle } from "lucide-react";
+import { CheckCircle2, PlayCircle, ArrowRight } from "lucide-react";
 import { fadeUp, staggerContainer, staggerItem } from "@/lib/motion";
-import { WHY_CHOOSE_US, TOUR_VIDEOS } from "@/data/content";
+import { WHY_CHOOSE_US, TOUR_VIDEOS, getRoomTypeKey } from "@/data/content";
+import { useRooms } from "@/hooks/useRooms";
 import { useSEO } from "@/hooks/useSEO";
 import { Container, Section, SectionHeading } from "@/components/ui/layout-primitives";
+import { Button } from "@/components/ui/button";
 
 const ABOUT_IMAGE = "/images/jikmis/gallery/jikmis-rooftop-stupa-sunset.jpg";
 
 export default function About() {
   useSEO("About Us", "Learn about Jikmis Apartment — comfortable, fully-equipped serviced apartments with a personal touch.");
+  const { rooms } = useRooms();
+
+  // Finds a live, bookable room matching this video's room type (e.g. the
+  // "Single Studio Room" video matches any live room whose room_type
+  // contains "single") so the button can deep-link straight into booking
+  // that room. Falls back to the general Rooms page if none is available
+  // right now (e.g. temporarily under maintenance).
+  function bookingLinkFor(videoTitle: string) {
+    const key = getRoomTypeKey(videoTitle);
+    const match = key ? rooms.find((r) => getRoomTypeKey(r.room_type) === key && r.status !== "maintenance") : undefined;
+    return match ? `/booking?room=${match.id}` : "/rooms";
+  }
+
   return (
     <div>
       <div className="bg-navy-900 pb-16 pt-32 text-center text-white sm:pt-40">
@@ -85,9 +101,16 @@ export default function About() {
                 >
                   <source src={video.src} type="video/mp4" />
                 </video>
-                <p className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-navy-700">
-                  <PlayCircle className="h-4 w-4 shrink-0 text-gold-500" /> {video.title}
-                </p>
+                <div className="px-4 py-3">
+                  <p className="flex items-center gap-2 text-sm font-medium text-navy-700">
+                    <PlayCircle className="h-4 w-4 shrink-0 text-gold-500" /> {video.title}
+                  </p>
+                  <Link to={bookingLinkFor(video.title)} className="mt-3 block">
+                    <Button size="sm" className="w-full">
+                      Book This Room <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </div>
               </motion.div>
             ))}
           </motion.div>
