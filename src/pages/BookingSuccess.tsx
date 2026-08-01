@@ -1,6 +1,6 @@
 import { useLocation, Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle2, Calendar, DoorClosed, Wallet, Phone } from "lucide-react";
+import { Clock3, Calendar, DoorClosed, Wallet, Phone, TrendingDown } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { fadeUp } from "@/lib/motion";
 import { SITE } from "@/data/content";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useSEO } from "@/hooks/useSEO";
 
 export default function BookingSuccess() {
-  useSEO("Booking Confirmed");
+  useSEO("Booking Request Submitted");
   const location = useLocation() as { state?: { booking?: PublicBookingResult } };
   const booking = location.state?.booking;
 
@@ -22,12 +22,13 @@ export default function BookingSuccess() {
     <Section className="py-24">
       <Container className="max-w-xl">
         <motion.div variants={fadeUp} initial="initial" animate="animate" className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="h-9 w-9" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+            <Clock3 className="h-9 w-9" />
           </div>
-          <h1 className="mt-6 font-display text-3xl font-semibold text-navy-900">Booking Confirmed!</h1>
+          <h1 className="mt-6 font-display text-3xl font-semibold text-navy-900">Booking Request Submitted!</h1>
           <p className="mt-2 text-slate-500">
-            Thank you — we look forward to hosting you. A confirmation has been recorded under the booking number below.
+            Thank you — your request has been sent to our team for review. We'll confirm your reservation shortly; you'll be notified
+            as soon as it's approved.
           </p>
         </motion.div>
 
@@ -41,6 +42,13 @@ export default function BookingSuccess() {
           <div className="flex items-center justify-between border-b border-dashed border-slate-200 pb-4">
             <span className="text-sm text-slate-400">Booking Number</span>
             <span className="font-mono text-base font-semibold text-navy-900">{booking.booking_number}</span>
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <span className="text-sm text-slate-500">Status</span>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
+              Pending Approval
+            </span>
           </div>
 
           <div className="flex items-center justify-between py-3">
@@ -63,6 +71,16 @@ export default function BookingSuccess() {
             <span className="text-sm text-slate-500">Nights</span>
             <span className="font-medium text-navy-800">{booking.nights}</span>
           </div>
+          {booking.pricing_method && (
+            <div className="flex items-center justify-between py-3">
+              <span className="flex items-center gap-2 text-sm text-slate-500">
+                <TrendingDown className="h-4 w-4 text-gold-500" /> Pricing Method
+              </span>
+              <span className="font-medium text-navy-800">
+                {booking.pricing_method === "monthly" ? "Monthly Apartment Rate" : "Daily Rate"}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-between border-t border-dashed border-slate-200 pt-4">
             <span className="flex items-center gap-2 text-base font-semibold text-navy-900">
               <Wallet className="h-4 w-4 text-gold-500" /> Total

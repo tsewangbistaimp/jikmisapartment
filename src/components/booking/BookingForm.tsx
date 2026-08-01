@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { CalendarDays, Users, ShieldCheck } from "lucide-react";
+import { CalendarDays, Users, ShieldCheck, TrendingDown, Clock } from "lucide-react";
 import { publicBookingFormSchema, type PublicBookingFormValues } from "@/lib/schemas";
 import { formatCurrency, nightsBetween } from "@/lib/utils";
 import { maxGuestsFor } from "@/data/content";
 import { useRooms, useRoomBookedRanges } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useCreateBooking";
+import { useBookingPrice } from "@/hooks/useBookingPrice";
 import { Label, Input, Textarea, Select, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AvailabilityCalendar } from "@/components/booking/AvailabilityCalendar";
@@ -41,6 +42,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   const nights = nightsBetween(checkIn, checkOut);
   const selectedRoom = rooms.find((r) => r.id === roomId);
   const { ranges: bookedRanges, loading: rangesLoading } = useRoomBookedRanges(roomId);
+  const { quote: priceQuote } = useBookingPrice(roomId, checkIn, checkOut);
   const guestCount = watch("guest_count");
   const maxGuests = selectedRoom ? maxGuestsFor(selectedRoom.room_type) : undefined;
   const overCapacity = !!maxGuests && guestCount > maxGuests;
@@ -150,13 +152,59 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
                 <span className="text-slate-400">{nights} night{nights === 1 ? "" : "s"} · </span>
                 {available === false ? (
                   <span className="font-semibold text-red-500">Not available for these dates</span>
-                ) : selectedRoom ? (
-                  <span className="font-semibold text-navy-800">{formatCurrency(selectedRoom.price * nights)} total</span>
+                ) : priceQuote ? (
+                  <span className="font-semibold text-navy-800">{formatCurrency(priceQuote.total_amount)} total</span>
                 ) : null}
               </div>
             )}
           </div>
         </div>
+
+        {priceQuote && available !== false && (
+          <div className="mt-4 rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Price Breakdown</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between text-slate-500">
+                <span>Room Type</span>
+                <span className="font-medium text-navy-800">{selectedRoom?.room_type}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-500">
+                <span>Daily Rate</span>
+                <span>{formatCurrency(priceQuote.daily_rate)}/night</span>
+              </div>
+              {priceQuote.monthly_rate != null && (
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>Monthly Apartment Rate</span>
+                  <span>{formatCurrency(priceQuote.monthly_rate)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-slate-500">
+                <span>Nights</span>
+                <span>{priceQuote.nights}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-500">
+                <span>Pricing Method</span>
+                <span className="font-medium text-navy-800">
+                  {priceQuote.pricing_method === "monthly" ? "Monthly Apartment Rate" : "Daily Rate"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-dashed border-slate-200 pt-2.5 text-base font-semibold text-navy-900">
+                <span>Grand Total</span>
+                <span>{formatCurrency(priceQuote.total_amount)}</span>
+              </div>
+            </div>
+
+            {priceQuote.pricing_method === "monthly" && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
+                <TrendingDown className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-semibold">Long-Term Stay Rate Applied.</span> Stays of 30 nights or more get our flat monthly
+                  apartment rate instead of the nightly rate — automatically, no need to ask.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="rounded-3xl border border-slate-100 bg-slate-50/60 p-6">
@@ -198,11 +246,14 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
         loading={submitting}
         disabled={!roomId || !datesSelected || available === false || overCapacity}
       >
-        {!roomId ? "Select a Room to Continue" : !datesSelected ? "Select Your Dates to Continue" : submitting ? "Confirming your booking…" : "Book Now"}
+        {!roomId ? "Select a Room to Continue" : !datesSelected ? "Select Your Dates to Continue" : submitting ? "Submitting your request…" : "Request to Book"}
       </Button>
 
       <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
-        <ShieldCheck className="h-3.5 w-3.5" /> Your booking is confirmed instantly and appears in our reservations system right away.
+        <Clock className="h-3.5 w-3.5" /> Your request is reviewed by our team and confirmed shortly — you'll be notified once it's approved.
+      </p>
+      <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-300">
+        <ShieldCheck className="h-3 w-3" /> No payment is collected now — pricing is calculated securely on our end.
       </p>
     </form>
   );

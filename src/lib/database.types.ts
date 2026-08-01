@@ -27,7 +27,9 @@ export interface Service {
 }
 
 /** Return shape of the public.create_public_booking() RPC (see
- *  jikmis-apartment/supabase/migrations/20260801070000_public_booking_website.sql). */
+ *  jikmis-apartment/supabase/migrations/20260801080000_online_booking_approval_and_monthly_pricing.sql).
+ *  booking_status now comes back as 'pending_approval' — the website no
+ *  longer auto-confirms; a staff member reviews it in the admin dashboard. */
 export interface PublicBookingResult {
   booking_id: string;
   booking_number: string;
@@ -37,7 +39,21 @@ export interface PublicBookingResult {
   check_out: string;
   nights: number;
   total_amount: number;
+  pricing_method: "daily" | "monthly";
   booking_status: string;
+}
+
+/** Return shape of the shared public.calculate_booking_price() RPC — the
+ *  single place daily-vs-monthly pricing is decided, used here purely for a
+ *  live quote while the guest is filling out the form. The database
+ *  recalculates this same value again inside create_public_booking(), so
+ *  the client-shown number is never trusted as the final charge. */
+export interface BookingPriceQuote {
+  nights: number;
+  pricing_method: "daily" | "monthly";
+  daily_rate: number;
+  monthly_rate: number | null;
+  total_amount: number;
 }
 
 export interface CreatePublicBookingArgs {
