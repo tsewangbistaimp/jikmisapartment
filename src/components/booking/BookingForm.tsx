@@ -123,6 +123,15 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
             <p className="py-6 text-center text-sm text-slate-400">Select a room above to see its live availability calendar.</p>
           ) : (
             <AvailabilityCalendar
+              // Remounts the calendar (and its internal availability hook)
+              // whenever the selected room changes, instead of reusing the
+              // same instance with a new roomId prop. Without this, the
+              // previous room's cached booked/pending ranges stay on screen
+              // for the brief moment before the new room's data has loaded,
+              // which could let a guest tap a date that looks open (because
+              // it was open for the OLD room) but is actually unavailable
+              // for the room they just switched to.
+              key={roomId}
               roomId={roomId}
               roomStatus={selectedRoom?.status}
               checkIn={checkIn}
@@ -274,9 +283,25 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
         size="lg"
         className="w-full"
         loading={submitting}
-        disabled={!roomId || !datesSelected || available === false || overCapacity}
+        // Require an explicit "available === true" rather than merely
+        // "not false" — while the final safety check is still in flight
+        // (available === null), submitting must stay blocked, otherwise a
+        // guest who taps the button quickly could squeeze a request through
+        // before the database-backed check has actually confirmed the dates
+        // are free. The database's own overlap guard in create_public_booking()
+        // is still the ultimate authority, but the button shouldn't invite
+        // guests to race it.
+        disabled={!roomId || !datesSelected || available !== true || overCapacity}
       >
-        {!roomId ? "Select a Room to Continue" : !datesSelected ? "Select Your Dates to Continue" : submitting ? "Submitting your request…" : "Request to Book"}
+        {!roomId
+          ? "Select a Room to Continue"
+          : !datesSelected
+            ? "Select Your Dates to Continue"
+            : submitting
+              ? "Submitting your request…"
+              : available === null
+                ? "Checking availability…"
+                : "Request to Book"}
       </Button>
 
       <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
