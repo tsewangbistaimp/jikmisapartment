@@ -26,7 +26,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
     setValue,
     control,
     formState: { errors },
-  } = useForm<PublicBookingFormValues & { room_id: string }>({
+  } = useForm<PublicBookingFormValues>({
     resolver: zodResolver(publicBookingFormSchema) as never,
     defaultValues: {
       room_id: initialRoomId ?? "",
@@ -116,6 +116,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
               </Select>
             )}
           />
+          <FieldError message={errors.room_id?.message} />
         </div>
 
         <div className="mt-6 rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">

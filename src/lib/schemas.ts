@@ -6,6 +6,13 @@ import { z } from "zod";
 // system would consider invalid.
 export const publicBookingFormSchema = z
   .object({
+    // Without this in the schema, zod's resolver strips room_id from the
+    // parsed values on submit (since z.object() drops keys it doesn't know
+    // about) even though the guest genuinely picked a room in the UI — that
+    // silently turned into a false "Please select a room" error at submit
+    // time. Declaring it here keeps it in the validated output AND gives a
+    // real validation error if it's ever actually empty.
+    room_id: z.string().min(1, "Please select a room"),
     full_name: z.string().trim().min(2, "Please enter your full name"),
     phone: z
       .string()
