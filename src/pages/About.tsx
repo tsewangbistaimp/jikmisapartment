@@ -1,12 +1,11 @@
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
-import { fadeUp } from "@/lib/motion";
-import { WHY_CHOOSE_US } from "@/data/content";
+import { CheckCircle2, PlayCircle } from "lucide-react";
+import { fadeUp, staggerContainer, staggerItem } from "@/lib/motion";
+import { WHY_CHOOSE_US, TOUR_VIDEOS } from "@/data/content";
 import { useSEO } from "@/hooks/useSEO";
 import { Container, Section, SectionHeading } from "@/components/ui/layout-primitives";
 
-// TODO: placeholder stock photo — replace with a real interior photo.
-const ABOUT_IMAGE = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1600&auto=format&fit=crop";
+const ABOUT_IMAGE = "/images/jikmis/gallery/jikmis-rooftop-stupa-sunset.jpg";
 
 export default function About() {
   useSEO("About Us", "Learn about Jikmis Apartment — comfortable, fully-equipped serviced apartments with a personal touch.");
@@ -28,8 +27,9 @@ export default function About() {
               description={
                 <>
                   Jikmis Apartment was built around a simple idea: travelers deserve a place that feels like home, run with the
-                  attentiveness of a boutique hotel. Every apartment is thoughtfully maintained and personally checked before each
-                  guest arrives, and our front desk team is on hand around the clock for anything you might need during your stay.
+                  attentiveness of a boutique hotel. Tucked in Boudha, a 5-10 minute walk from Boudhanath Stupa, every apartment is
+                  thoughtfully maintained and personally checked before each guest arrives — and we're always just a WhatsApp
+                  message or phone call away for anything you need during your stay.
                 </>
               }
             />
@@ -52,7 +52,36 @@ export default function About() {
             viewport={{ once: true }}
             className="overflow-hidden rounded-3xl shadow-xl"
           >
-            <img src={ABOUT_IMAGE} alt="Jikmis Apartment interior" className="h-full w-full object-cover" />
+            <img src={ABOUT_IMAGE} alt="Rooftop view of Boudhanath Stupa at sunset from Jikmis Apartment" className="h-full w-full object-cover" />
+          </motion.div>
+        </Container>
+      </Section>
+
+      <Section className="bg-navy-50/50">
+        <Container>
+          <SectionHeading
+            eyebrow="Video Tour"
+            title="Take a Look Around"
+            description="A quick video walkthrough of Jikmis Apartment, filmed on-site."
+            align="center"
+          />
+          <motion.div
+            variants={staggerContainer(80)}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3"
+          >
+            {TOUR_VIDEOS.map((video) => (
+              <motion.div key={video.src} variants={staggerItem} className="overflow-hidden rounded-2xl bg-navy-900 shadow-lg">
+                <video controls preload="none" className="aspect-[9/16] w-full bg-navy-900 object-cover">
+                  <source src={video.src} type="video/mp4" />
+                </video>
+                <p className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-navy-700">
+                  <PlayCircle className="h-4 w-4 shrink-0 text-gold-500" /> {video.title}
+                </p>
+              </motion.div>
+            ))}
           </motion.div>
         </Container>
       </Section>

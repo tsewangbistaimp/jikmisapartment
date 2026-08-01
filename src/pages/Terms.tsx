@@ -20,34 +20,38 @@ export default function Terms() {
           <div>
             <h2>Booking & Payment</h2>
             <p>
-              Bookings made through this website are confirmed instantly and recorded in our reservations system. Unless
-              stated otherwise at the time of booking, payment is settled at the property using cash, eSewa, Khalti, or bank
-              transfer.
+              Bookings made through this website are confirmed instantly and recorded in our reservations system. A 50%
+              advance payment is required to confirm your booking, with the remaining 50% due within 2 days of check-in.
+              Accepted payment methods are cash, bank transfer, eSewa, and Khalti. Payment is never collected through this
+              website or in chat — you'll be contacted directly to arrange it.
             </p>
           </div>
 
           <div>
             <h2>Cancellations</h2>
             <p>
-              {/* TODO: fill in your real cancellation policy — none is enforced automatically by the booking system today. */}
-              Please contact us directly at {SITE.phone} or {SITE.email} to cancel or change a reservation. Cancellation terms
-              will be confirmed with you at the time of booking.
+              {/* TODO: fill in a formal refund percentage/timeline policy if you adopt one — the source material only
+                  confirms that terms are set case-by-case, not a fixed refund schedule. */}
+              Please contact us directly at {SITE.phone} or {SITE.email} to cancel or change a reservation. Cancellation and
+              refund terms depend on your specific booking and will be confirmed with you directly.
             </p>
           </div>
 
           <div>
             <h2>Check-in & Check-out</h2>
             <p>
-              Standard check-in and check-out times will be confirmed in your booking communication. Early check-in or late
-              check-out may be arranged in advance, subject to availability.
+              Check-in is from 2:00 PM onwards, and check-out is before 12:00 PM (noon). Early check-in or late check-out may
+              be arranged in advance, subject to availability. All guests must present a valid government ID, citizenship
+              card, or passport at check-in, as required by Nepal regulations.
             </p>
           </div>
 
           <div>
             <h2>Guest Conduct</h2>
             <p>
-              Guests are expected to treat the apartment and building with care and respect other residents. Any damages
-              beyond normal wear and tear may be charged to the guest.
+              Quiet hours are observed from 10:00 PM to 7:00 AM. Smoking is not permitted inside the apartment, and pets are
+              not allowed. Guests are expected to treat the apartment and building with care and respect other residents; any
+              damages beyond normal wear and tear may be charged to the guest.
             </p>
           </div>
 

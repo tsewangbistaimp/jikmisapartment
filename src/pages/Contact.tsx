@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { contactFormSchema, type ContactFormValues } from "@/lib/schemas";
 import { SITE } from "@/data/content";
 import { fadeUp } from "@/lib/motion";
@@ -60,6 +60,12 @@ export default function Contact() {
                 <Clock className="h-5 w-5 shrink-0 text-gold-500" /> {SITE.openingHours}
               </li>
             </ul>
+
+            <a href={SITE.social.whatsapp} target="_blank" rel="noreferrer" className="mt-6 inline-block">
+              <Button variant="outline" size="sm">
+                <MessageCircle className="h-4 w-4" /> Chat on WhatsApp
+              </Button>
+            </a>
 
             <div className="mt-8 overflow-hidden rounded-3xl border border-slate-100 shadow-lg">
               <iframe title="Map" src={SITE.mapEmbedUrl} className="h-64 w-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />

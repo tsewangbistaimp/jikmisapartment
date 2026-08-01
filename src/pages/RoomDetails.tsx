@@ -5,7 +5,7 @@ import { useRoom, useRooms } from "@/hooks/useRooms";
 import { useSEO } from "@/hooks/useSEO";
 import { formatCurrency, cn } from "@/lib/utils";
 import { fadeUp } from "@/lib/motion";
-import { AMENITIES } from "@/data/content";
+import { AMENITIES, ROOM_TYPE_PHOTOS } from "@/data/content";
 import { staggerContainer } from "@/lib/motion";
 import { Container, Section } from "@/components/ui/layout-primitives";
 import { PageSpinner, EmptyState } from "@/components/ui/misc";
@@ -18,6 +18,15 @@ import { Button } from "@/components/ui/button";
 // inventing per-room copy that doesn't exist in the database.
 function describeRoom(roomType: string) {
   return `Our ${roomType} apartment blends comfort and practicality — a private, fully-equipped space with everything you need for a short stay or an extended one. Freshly cleaned and ready before every check-in.`;
+}
+
+// Matches a room's `room_type` text against the ROOM_TYPE_PHOTOS keys (e.g.
+// a room typed "Single Studio" matches the "single" key) to surface extra
+// real photos of that room type, on top of whatever the admin has uploaded
+// as the room's primary `image_url`.
+function findRoomTypePhotos(roomType: string) {
+  const key = Object.keys(ROOM_TYPE_PHOTOS).find((k) => roomType.toLowerCase().includes(k));
+  return key ? ROOM_TYPE_PHOTOS[key] : [];
 }
 
 export default function RoomDetails() {
@@ -41,6 +50,7 @@ export default function RoomDetails() {
   }
 
   const related = rooms.filter((r) => r.id !== room.id).slice(0, 3);
+  const typePhotos = findRoomTypePhotos(room.room_type);
 
   return (
     <div>
@@ -84,6 +94,19 @@ export default function RoomDetails() {
                 </div>
               ))}
             </div>
+
+            {typePhotos.length > 0 && (
+              <>
+                <p className="mt-10 text-sm font-semibold uppercase tracking-wide text-navy-800">More Photos of This Room Type</p>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {typePhotos.map((photo) => (
+                    <div key={photo.url} className="aspect-square overflow-hidden rounded-xl">
+                      <img src={photo.url} alt={photo.caption} loading="lazy" className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </motion.div>
 
           <motion.div variants={fadeUp} initial="initial" animate="animate" className="lg:col-span-1">

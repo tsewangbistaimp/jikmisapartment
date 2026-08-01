@@ -4,11 +4,12 @@ import { X, DoorClosed } from "lucide-react";
 import { useRooms } from "@/hooks/useRooms";
 import { useSEO } from "@/hooks/useSEO";
 import { staggerContainer, staggerItem, scaleFade, fadeIn } from "@/lib/motion";
-import { Container, Section } from "@/components/ui/layout-primitives";
+import { Container, Section, SectionHeading } from "@/components/ui/layout-primitives";
 import { PageSpinner, EmptyState } from "@/components/ui/misc";
+import { PROPERTY_GALLERY } from "@/data/content";
 
 export default function Gallery() {
-  useSEO("Gallery", "Browse real photos of Jikmis Apartment's rooms.");
+  useSEO("Gallery", "Browse real photos of Jikmis Apartment's rooms, cafe, and rooftop.");
   const { rooms, loading } = useRooms();
   const [active, setActive] = React.useState<{ url: string; caption: string } | null>(null);
 
@@ -56,6 +57,34 @@ export default function Gallery() {
               <DoorClosed className="h-12 w-12" />
             </div>
           )}
+        </Container>
+      </Section>
+
+      <Section className="bg-navy-50/50">
+        <Container>
+          <SectionHeading
+            eyebrow="Around The Property"
+            title="Cafe, Rooftop & Common Areas"
+            description="A closer look at the shared spaces at Jikmis Apartment."
+          />
+          <motion.div
+            variants={staggerContainer(50)}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            className="mt-10 columns-1 gap-4 sm:columns-2 lg:columns-3"
+          >
+            {PROPERTY_GALLERY.map((img, i) => (
+              <motion.button
+                key={i}
+                variants={staggerItem}
+                onClick={() => setActive(img)}
+                className="mb-4 block w-full overflow-hidden rounded-2xl"
+              >
+                <img src={img.url} alt={img.caption} loading="lazy" className="w-full transition-transform duration-500 hover:scale-105" />
+              </motion.button>
+            ))}
+          </motion.div>
         </Container>
       </Section>
 
