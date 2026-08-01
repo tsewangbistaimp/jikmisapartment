@@ -13,7 +13,10 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        "h-12 w-full rounded-xl border bg-white px-4 text-sm text-navy-900 outline-none transition-colors placeholder:text-slate-400",
+        // text-base (16px) on mobile prevents iOS Safari from auto-zooming
+        // the page when an input is focused; sm:text-sm keeps it compact on
+        // larger screens.
+        "h-12 w-full rounded-xl border bg-white px-4 text-base text-navy-900 outline-none transition-colors placeholder:text-slate-400 sm:text-sm",
         "focus:border-gold-400 focus:ring-2 focus:ring-gold-100",
         error ? "border-red-300" : "border-slate-200",
         className
@@ -29,7 +32,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
     <textarea
       ref={ref}
       className={cn(
-        "w-full rounded-xl border bg-white px-4 py-3 text-sm text-navy-900 outline-none transition-colors placeholder:text-slate-400",
+        "w-full rounded-xl border bg-white px-4 py-3 text-base text-navy-900 outline-none transition-colors placeholder:text-slate-400 sm:text-sm",
         "focus:border-gold-400 focus:ring-2 focus:ring-gold-100",
         error ? "border-red-300" : "border-slate-200",
         className
@@ -45,7 +48,7 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
     <select
       ref={ref}
       className={cn(
-        "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-navy-900 outline-none transition-colors",
+        "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base text-navy-900 outline-none transition-colors sm:text-sm",
         "focus:border-gold-400 focus:ring-2 focus:ring-gold-100",
         className
       )}

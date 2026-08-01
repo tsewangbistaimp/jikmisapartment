@@ -5,7 +5,7 @@ import { useRoom, useRooms } from "@/hooks/useRooms";
 import { useSEO } from "@/hooks/useSEO";
 import { formatCurrency, cn } from "@/lib/utils";
 import { fadeUp } from "@/lib/motion";
-import { AMENITIES, ROOM_TYPE_PHOTOS } from "@/data/content";
+import { AMENITIES, ROOM_TYPE_PHOTOS, maxGuestsFor, getRoomTypeKey } from "@/data/content";
 import { staggerContainer } from "@/lib/motion";
 import { Container, Section } from "@/components/ui/layout-primitives";
 import { PageSpinner, EmptyState } from "@/components/ui/misc";
@@ -20,12 +20,10 @@ function describeRoom(roomType: string) {
   return `Our ${roomType} apartment blends comfort and practicality — a private, fully-equipped space with everything you need for a short stay or an extended one. Freshly cleaned and ready before every check-in.`;
 }
 
-// Matches a room's `room_type` text against the ROOM_TYPE_PHOTOS keys (e.g.
-// a room typed "Single Studio" matches the "single" key) to surface extra
-// real photos of that room type, on top of whatever the admin has uploaded
-// as the room's primary `image_url`.
+// Surfaces extra real photos of a room's type, on top of whatever the admin
+// has uploaded as the room's primary `image_url`.
 function findRoomTypePhotos(roomType: string) {
-  const key = Object.keys(ROOM_TYPE_PHOTOS).find((k) => roomType.toLowerCase().includes(k));
+  const key = getRoomTypeKey(roomType);
   return key ? ROOM_TYPE_PHOTOS[key] : [];
 }
 
@@ -51,6 +49,7 @@ export default function RoomDetails() {
 
   const related = rooms.filter((r) => r.id !== room.id).slice(0, 3);
   const typePhotos = findRoomTypePhotos(room.room_type);
+  const maxGuests = maxGuestsFor(room.room_type);
 
   return (
     <div>
@@ -75,7 +74,8 @@ export default function RoomDetails() {
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-6">
               <div>
                 <p className="flex items-center gap-1.5 text-sm text-slate-500">
-                  <Users className="h-4 w-4" /> Comfortably fits up to 3 guests
+                  <Users className="h-4 w-4" />
+                  {maxGuests ? `Comfortably fits up to ${maxGuests} guest${maxGuests === 1 ? "" : "s"}` : "Ask us about guest capacity"}
                 </p>
               </div>
               <div className="text-right">
@@ -110,7 +110,7 @@ export default function RoomDetails() {
           </motion.div>
 
           <motion.div variants={fadeUp} initial="initial" animate="animate" className="lg:col-span-1">
-            <div className={cn("sticky top-28 rounded-3xl border border-slate-100 p-6 shadow-lg", room.status === "maintenance" && "opacity-60")}>
+            <div className={cn("rounded-3xl border border-slate-100 p-6 shadow-lg lg:sticky lg:top-28", room.status === "maintenance" && "opacity-60")}>
               <p className="mb-4 font-display text-lg font-semibold text-navy-900">Reserve This Room</p>
               {room.status === "maintenance" ? (
                 <EmptyState title="Currently unavailable" description="This room is temporarily out of service. Please choose another room." />

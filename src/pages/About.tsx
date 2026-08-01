@@ -27,7 +27,7 @@ export default function About() {
               description={
                 <>
                   Jikmis Apartment was built around a simple idea: travelers deserve a place that feels like home, run with the
-                  attentiveness of a boutique hotel. Tucked in Boudha, a 5-10 minute walk from Boudhanath Stupa, every apartment is
+                  attentiveness of a boutique hotel. Tucked in Boudha, a 3-5 minute walk from Boudhanath Stupa, every apartment is
                   thoughtfully maintained and personally checked before each guest arrives — and we're always just a WhatsApp
                   message or phone call away for anything you need during your stay.
                 </>
@@ -74,7 +74,15 @@ export default function About() {
           >
             {TOUR_VIDEOS.map((video) => (
               <motion.div key={video.src} variants={staggerItem} className="overflow-hidden rounded-2xl bg-navy-900 shadow-lg">
-                <video controls preload="none" className="aspect-[9/16] w-full bg-navy-900 object-cover">
+                <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  aria-label={`Video tour of the ${video.title}`}
+                  className="aspect-[9/16] w-full bg-navy-900 object-cover"
+                >
                   <source src={video.src} type="video/mp4" />
                 </video>
                 <p className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-navy-700">

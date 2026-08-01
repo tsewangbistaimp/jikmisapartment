@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CalendarDays, Users, ShieldCheck } from "lucide-react";
 import { publicBookingFormSchema, type PublicBookingFormValues } from "@/lib/schemas";
 import { formatCurrency, nightsBetween, todayISO, addDaysISO } from "@/lib/utils";
+import { maxGuestsFor } from "@/data/content";
 import { useRooms, useRoomAvailability } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useCreateBooking";
 import { Label, Input, Textarea, Select, FieldError } from "@/components/ui/input";
@@ -38,6 +39,9 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   const nights = nightsBetween(checkIn, checkOut);
   const selectedRoom = rooms.find((r) => r.id === roomId);
   const { available, checking } = useRoomAvailability(roomId, checkIn, checkOut);
+  const guestCount = watch("guest_count");
+  const maxGuests = selectedRoom ? maxGuestsFor(selectedRoom.room_type) : undefined;
+  const overCapacity = !!maxGuests && guestCount > maxGuests;
 
   const onSubmit = handleSubmit(async (values) => {
     if (!values.room_id) {
@@ -101,9 +105,13 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
           </div>
 
           <div>
-            <Label htmlFor="guest_count">Guests</Label>
-            <Input id="guest_count" type="number" min={1} {...register("guest_count", { valueAsNumber: true })} />
-            <FieldError message={errors.guest_count?.message} />
+            <Label htmlFor="guest_count">Guests{maxGuests ? ` (max ${maxGuests})` : ""}</Label>
+            <Input id="guest_count" type="number" min={1} max={maxGuests} {...register("guest_count", { valueAsNumber: true })} />
+            {overCapacity ? (
+              <p className="mt-1.5 text-xs font-medium text-red-500">This room fits up to {maxGuests} guests.</p>
+            ) : (
+              <FieldError message={errors.guest_count?.message} />
+            )}
           </div>
 
           <div className="flex items-end">
@@ -155,7 +163,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
 
       <FieldError message={error ?? undefined} />
 
-      <Button type="submit" size="lg" className="w-full" loading={submitting} disabled={available === false}>
+      <Button type="submit" size="lg" className="w-full" loading={submitting} disabled={available === false || overCapacity}>
         {submitting ? "Confirming your booking…" : "Book Now"}
       </Button>
 

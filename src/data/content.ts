@@ -20,13 +20,14 @@ import { Wifi, UtensilsCrossed, Droplets, BedDouble, Table2, Armchair, ShirtIcon
 export const SITE = {
   name: "Jikmis Apartment",
   tagline: "Serviced Studios & Family Apartments in Boudha",
-  address: "Boudha, Kathmandu, Nepal — a 5-10 minute walk from Boudhanath Stupa",
+  address: "Boudha, Kathmandu, Nepal — a 3-5 minute walk from Boudhanath Stupa",
   phone: "+977 9708538395",
   phoneAlt: "+977 9869035191",
   email: "jikmisdonkhang@gmail.com",
-  // Google Maps embed centered on Boudhanath Stupa, the nearest landmark.
-  mapEmbedUrl: "https://www.google.com/maps?q=Boudhanath+Stupa,+Kathmandu,+Nepal&output=embed",
-  mapLink: "https://maps.app.goo.gl/8GBvpWXkh6NiQihz8?g_st=ic",
+  // Exact coordinates resolved from the property's real Google Maps pin
+  // (maps.app.goo.gl/C35rXNkd5Lxam5MT8 -> "Jikmi's apartment" @27.7223124,85.3668142).
+  mapEmbedUrl: "https://www.google.com/maps?q=27.7223124,85.3668142&output=embed",
+  mapLink: "https://maps.app.goo.gl/C35rXNkd5Lxam5MT8",
   openingHours: "Reach us anytime via WhatsApp or call",
   social: {
     facebook: "#",
@@ -67,7 +68,7 @@ export interface Attraction {
 }
 
 export const NEARBY_ATTRACTIONS: Attraction[] = [
-  { name: "Boudhanath Stupa", distance: "5-10 min walk", description: "One of the largest stupas in the world and a UNESCO World Heritage Site — the heart of the neighborhood." },
+  { name: "Boudhanath Stupa", distance: "3-5 min walk", description: "One of the largest stupas in the world and a UNESCO World Heritage Site — the heart of the neighborhood." },
   { name: "Local Monasteries", distance: "Walking distance", description: "Several Tibetan Buddhist monasteries and gompas are scattered throughout Boudha." },
   { name: "Cafes & Restaurants", distance: "Walking distance", description: "Rooftop cafes and restaurants line the stupa circle, including our own on-site cafe." },
   { name: "Shops, Pharmacies & ATMs", distance: "Walking distance", description: "Souvenir shops, pharmacies, banks, grocery stores, and bakeries are all close by." },
@@ -105,7 +106,7 @@ export const TESTIMONIALS: Testimonial[] = [
 
 export const WHY_CHOOSE_US = [
   { title: "Best Rate Guaranteed", description: "Book direct and always get our lowest available rate — no third-party markup." },
-  { title: "Steps from Boudhanath Stupa", description: "A 5-10 minute walk from one of Kathmandu's most iconic landmarks, with cafes and monasteries all around." },
+  { title: "Steps from Boudhanath Stupa", description: "A 3-5 minute walk from one of Kathmandu's most iconic landmarks, with cafes and monasteries all around." },
   { title: "Always Reachable", description: "WhatsApp or call us anytime with questions before, during, or after your stay." },
   { title: "Fully Equipped Apartments", description: "Kitchen access, hot water, Wi-Fi, and everyday comforts in every unit." },
 ];
@@ -170,7 +171,28 @@ export interface TourVideo {
 }
 
 export const TOUR_VIDEOS: TourVideo[] = [
-  { src: "/videos/jikmis-apartment-tour-1.mp4", title: "Apartment Tour — Part 1" },
-  { src: "/videos/jikmis-apartment-tour-2.mp4", title: "Apartment Tour — Part 2" },
-  { src: "/videos/jikmis-apartment-tour-3.mp4", title: "Apartment Tour — Part 3" },
+  { src: "/videos/jikmis-apartment-tour-1.mp4", title: "2BHK Family Room" },
+  { src: "/videos/jikmis-apartment-tour-2.mp4", title: "Single Studio Room" },
+  { src: "/videos/jikmis-apartment-tour-3.mp4", title: "Double Studio Room" },
 ];
+
+// Matches a room's `room_type` text (e.g. "Single Studio") against a known
+// key ("single") — shared by ROOM_TYPE_PHOTOS and ROOM_TYPE_MAX_GUESTS below
+// so both stay in sync with the same matching rule.
+export function getRoomTypeKey(roomType: string): string | undefined {
+  return Object.keys(ROOM_TYPE_MAX_GUESTS).find((k) => roomType.toLowerCase().includes(k));
+}
+
+// The `rooms` table has no max-guests column, so this is confirmed real
+// capacity per room type (not pulled from the database). Prices are never
+// hardcoded here — those always come from the live `room.price` field.
+export const ROOM_TYPE_MAX_GUESTS: Record<string, number> = {
+  single: 2,
+  double: 3,
+  family: 5,
+};
+
+export function maxGuestsFor(roomType: string): number | undefined {
+  const key = getRoomTypeKey(roomType);
+  return key ? ROOM_TYPE_MAX_GUESTS[key] : undefined;
+}

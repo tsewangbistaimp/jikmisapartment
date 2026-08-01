@@ -3,11 +3,13 @@ import { motion } from "framer-motion";
 import { DoorClosed, Users, ArrowRight } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { staggerItem } from "@/lib/motion";
+import { maxGuestsFor } from "@/data/content";
 import type { Room } from "@/lib/database.types";
 import { Button } from "@/components/ui/button";
 
 export function RoomCard({ room }: { room: Room }) {
   const unavailable = room.status === "maintenance";
+  const maxGuests = maxGuestsFor(room.room_type);
 
   return (
     <motion.div
@@ -39,7 +41,8 @@ export function RoomCard({ room }: { room: Room }) {
       <div className="flex flex-1 flex-col p-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">{room.room_type}</p>
         <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
-          <Users className="h-4 w-4" /> Comfortably fits up to 3 guests
+          <Users className="h-4 w-4" />
+          {maxGuests ? `Fits up to ${maxGuests} guest${maxGuests === 1 ? "" : "s"}` : "Ask us about guest capacity"}
         </p>
 
         <div className="mt-4 flex items-baseline gap-1">
@@ -47,15 +50,22 @@ export function RoomCard({ room }: { room: Room }) {
           <span className="text-sm text-slate-400">/ night</span>
         </div>
 
-        <Link to={`/rooms/${room.id}`} className="mt-5">
-          <Button
-            variant={unavailable ? "outline" : "primary"}
-            className={cn("w-full", unavailable && "pointer-events-none opacity-60")}
-            disabled={unavailable}
-          >
-            View Details <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <Link to={`/rooms/${room.id}`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
+          <Link to={`/booking?room=${room.id}`} className={cn("flex-1", unavailable && "pointer-events-none")}>
+            <Button
+              variant="primary"
+              className={cn("w-full", unavailable && "pointer-events-none opacity-60")}
+              disabled={unavailable}
+            >
+              Book Now <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
       </div>
     </motion.div>
   );
