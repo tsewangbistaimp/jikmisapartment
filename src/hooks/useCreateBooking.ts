@@ -33,8 +33,19 @@ export function useCreateBooking() {
       return null;
     }
 
-    const result = Array.isArray(data) ? data[0] : data;
-    return (result as PublicBookingResult) ?? null;
+    const result = (Array.isArray(data) ? data[0] : data) as PublicBookingResult | null;
+
+    if (result?.booking_id) {
+      // Fire-and-forget: lets staff know a new request came in by email
+      // (jikmisdonkhang@gmail.com), in addition to the admin dashboard's
+      // realtime popup, in case nobody has it open. Deliberately not
+      // awaited and errors are swallowed — the guest's booking already
+      // succeeded and must never be affected by this notification failing.
+      // See jikmis-apartment/supabase/functions/notify-new-booking.
+      supabase.functions.invoke("notify-new-booking", { body: { booking_id: result.booking_id } }).catch(() => {});
+    }
+
+    return result ?? null;
   };
 
   return { createBooking, submitting, error, setError };
