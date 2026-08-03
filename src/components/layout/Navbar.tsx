@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { to: "/rooms", label: "Rooms" },
   { to: "/gallery", label: "Gallery" },
   { to: "/amenities", label: "Amenities" },
+  { to: "/jimkis-farm-donkhang", label: "Partners" },
   { to: "/contact", label: "Contact" },
 ];
 

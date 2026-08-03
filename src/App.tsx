@@ -18,6 +18,7 @@ const RoomDetails = lazyWithRetry(() => import("@/pages/RoomDetails"));
 const Gallery = lazyWithRetry(() => import("@/pages/Gallery"));
 const Amenities = lazyWithRetry(() => import("@/pages/Amenities"));
 const NearbyAttractions = lazyWithRetry(() => import("@/pages/NearbyAttractions"));
+const JimkisFarmDonkhang = lazyWithRetry(() => import("@/pages/JimkisFarmDonkhang"));
 const Contact = lazyWithRetry(() => import("@/pages/Contact"));
 const Booking = lazyWithRetry(() => import("@/pages/Booking"));
 const BookingSuccess = lazyWithRetry(() => import("@/pages/BookingSuccess"));
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/amenities" element={<Amenities />} />
             <Route path="/nearby" element={<NearbyAttractions />} />
+            <Route path="/jimkis-farm-donkhang" element={<JimkisFarmDonkhang />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/booking-success" element={<BookingSuccess />} />

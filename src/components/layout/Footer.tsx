@@ -28,6 +28,7 @@ const FOOTER_LINKS = [
   { to: "/gallery", label: "Gallery" },
   { to: "/amenities", label: "Amenities" },
   { to: "/nearby", label: "Nearby Attractions" },
+  { to: "/jimkis-farm-donkhang", label: "Jimki's Farm & Donkhang" },
   { to: "/contact", label: "Contact" },
 ];
 
