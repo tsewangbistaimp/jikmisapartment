@@ -6,7 +6,7 @@ import { staggerContainer, staggerItem } from "@/lib/motion";
 import { Container, Section, SectionHeading } from "@/components/ui/layout-primitives";
 
 export default function NearbyAttractions() {
-  useSEO("Nearby Attractions", "Everything worth seeing within easy reach of Jikmis Apartment.");
+  useSEO("Nearby Attractions", "Everything worth seeing near Jikmis Apartment, our apartment in Boudha, Kathmandu.");
   return (
     <div>
       <div className="bg-navy-900 pb-16 pt-32 text-center text-white sm:pt-40">

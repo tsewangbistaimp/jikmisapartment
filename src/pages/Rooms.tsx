@@ -7,7 +7,7 @@ import { RoomCardSkeleton, EmptyState } from "@/components/ui/misc";
 import { staggerContainer } from "@/lib/motion";
 
 export default function Rooms() {
-  useSEO("Rooms & Rates", "Browse our fully-equipped serviced apartments with live pricing and availability.");
+  useSEO("Rooms & Rates", "Browse Jikmis Apartment's fully-equipped serviced apartments in Boudha, Kathmandu, with live pricing and availability.");
   const { rooms, loading, error } = useRooms();
   const badges = useRoomsAvailabilityBadges();
 

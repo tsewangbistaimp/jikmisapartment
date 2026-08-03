@@ -62,14 +62,14 @@ export function Hero() {
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
           <div className="mb-6 flex items-center gap-2 text-gold-400">
             <MapPin className="h-4 w-4" />
-            <span className="text-sm text-navy-200">Boudha, Kathmandu — steps from Boudhanath Stupa</span>
+            <span className="text-sm text-navy-200">Jikmis Apartment · Boudha, Kathmandu — steps from Boudhanath Stupa</span>
           </div>
 
           <h1 className="max-w-2xl font-display text-5xl font-semibold leading-[1.1] sm:text-6xl lg:text-7xl">
-            A Refined Stay, <span className="text-gold-400">Steps From the Stupa</span>
+            Your Apartment in Boudha, <span className="text-gold-400">Steps From the Stupa</span>
           </h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-navy-200">
-            Fully-equipped serviced apartments designed for comfort, whether you're staying a night or a month. Book directly, always at our best rate.
+            Jikmis Apartment offers fully-equipped serviced apartments in Boudha, Kathmandu, designed for comfort whether you're staying a night or a month. Book directly, always at our best rate.
           </p>
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">

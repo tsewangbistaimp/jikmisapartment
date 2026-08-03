@@ -4,7 +4,7 @@ import { BookingForm } from "@/components/booking/BookingForm";
 import { useSEO } from "@/hooks/useSEO";
 
 export default function Booking() {
-  useSEO("Book Online", "Reserve your apartment directly — instant confirmation, best rate guaranteed.");
+  useSEO("Book Online", "Reserve your apartment in Boudha directly with Jikmis Apartment — instant confirmation, best rate guaranteed.");
   const [searchParams] = useSearchParams();
   const roomId = searchParams.get("room") ?? undefined;
 

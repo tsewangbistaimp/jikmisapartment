@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 const ABOUT_IMAGE = "/images/jikmis/gallery/jikmis-rooftop-stupa-sunset.jpg";
 
 export default function About() {
-  useSEO("About Us", "Learn about Jikmis Apartment — comfortable, fully-equipped serviced apartments with a personal touch.");
+  useSEO("About Us", "Learn about Jikmis Apartment, a comfortable, fully-equipped serviced apartment in Boudha, Kathmandu, with a personal touch.");
   const { rooms } = useRooms();
 
   // Finds a live, bookable room matching this video's room type (e.g. the

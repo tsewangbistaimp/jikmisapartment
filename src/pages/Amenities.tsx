@@ -8,7 +8,7 @@ import { Container, Section, SectionHeading } from "@/components/ui/layout-primi
 import { Skeleton } from "@/components/ui/misc";
 
 export default function Amenities() {
-  useSEO("Amenities", "Wi-Fi, kitchen, hot water, and everything you need — plus optional add-on services.");
+  useSEO("Amenities", "Wi-Fi, kitchen, hot water, and everything you need at Jikmis Apartment in Boudha — plus optional add-on services.");
   const { services, loading } = useServices();
 
   return (

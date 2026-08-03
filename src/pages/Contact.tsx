@@ -12,7 +12,7 @@ import { Label, Input, Textarea, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function Contact() {
-  useSEO("Contact Us", "Get in touch with Jikmis Apartment for reservations and inquiries.");
+  useSEO("Contact Us", "Get in touch with Jikmis Apartment, your apartment in Boudha, Kathmandu, for reservations and inquiries.");
   const {
     register,
     handleSubmit,

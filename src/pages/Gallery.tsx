@@ -9,7 +9,7 @@ import { PageSpinner, EmptyState } from "@/components/ui/misc";
 import { PROPERTY_GALLERY } from "@/data/content";
 
 export default function Gallery() {
-  useSEO("Gallery", "Browse real photos of Jikmis Apartment's rooms, cafe, and rooftop.");
+  useSEO("Gallery", "Browse real photos of Jikmis Apartment, our serviced apartment in Boudha — rooms, cafe, and rooftop.");
   const { rooms, loading } = useRooms();
   const [active, setActive] = React.useState<{ url: string; caption: string } | null>(null);
 

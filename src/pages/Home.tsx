@@ -8,7 +8,7 @@ import { LocationSection } from "@/components/home/LocationSection";
 import { CTASection } from "@/components/home/CTASection";
 
 export default function Home() {
-  useSEO("Premium Serviced Apartments", "Book your stay at Jikmis Apartment directly for the best rate, instant confirmation, and a prime city location.");
+  useSEO("Apartment in Boudha, Kathmandu", "Jikmis Apartment is a premium serviced apartment in Boudha, Kathmandu, steps from Boudhanath Stupa. Book your stay directly for the best rate and instant confirmation.");
   return (
     <div>
       <Hero />
