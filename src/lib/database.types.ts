@@ -70,8 +70,15 @@ export interface CreatePublicBookingArgs {
   p_nationality?: string | null;
   p_passport_number?: string | null;
   p_notes?: string | null;
-  /** Optional — when given, admin approval/rejection emails go here (sent
-   *  from Jikmis Apartment's Gmail account, never from the guest's own
-   *  address). */
-  p_email?: string | null;
+  /** Required — the payment-instructions and later approval/rejection/
+   *  confirmation emails all go here (sent from Jikmis Apartment's Gmail
+   *  account, never from the guest's own address). Must be an address the
+   *  guest just verified via the 6-digit email code. */
+  p_email: string;
+  /** The verification_token returned by verify-email-otp after the guest
+   *  successfully enters their code. create_public_booking() re-checks this
+   *  server-side against email_otp_verifications — see
+   *  jikmis-apartment/supabase/migrations/20260803000000_verification_and_payment_review.sql.
+   *  A booking can't be created without a valid, recent one. */
+  p_verification_token: string;
 }

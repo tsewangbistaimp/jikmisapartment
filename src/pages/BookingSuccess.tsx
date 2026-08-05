@@ -1,6 +1,6 @@
 import { useLocation, Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock3, Calendar, DoorClosed, Wallet, Phone, TrendingDown } from "lucide-react";
+import { Clock3, Calendar, DoorClosed, Wallet, Phone, TrendingDown, MessageCircle, ShieldAlert } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { fadeUp } from "@/lib/motion";
 import { SITE } from "@/data/content";
@@ -47,7 +47,7 @@ export default function BookingSuccess() {
           <div className="flex items-center justify-between py-3">
             <span className="text-sm text-slate-500">Status</span>
             <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
-              Pending Approval
+              Pending Confirmation
             </span>
           </div>
 
@@ -87,6 +87,46 @@ export default function BookingSuccess() {
             </span>
             <span className="font-display text-xl font-semibold text-navy-900">{formatCurrency(booking.total_amount)}</span>
           </div>
+        </motion.div>
+
+        <motion.div
+          variants={fadeUp}
+          initial="initial"
+          animate="animate"
+          transition={{ delay: 0.15 }}
+          className="mt-8 rounded-3xl border border-amber-100 bg-amber-50/60 p-6"
+        >
+          <h2 className="font-display text-xl font-semibold text-navy-900">Booking Pending Confirmation</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            Your booking request has been received successfully.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            To confirm your reservation, please complete the <strong>50% advance payment</strong> and send a screenshot of the
+            payment receipt via WhatsApp to:
+          </p>
+          <a href={SITE.social.whatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-block">
+            <Button size="sm">
+              <MessageCircle className="h-4 w-4" /> WhatsApp {SITE.phone}
+            </Button>
+          </a>
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">
+            Once we receive and verify your payment, we will confirm your booking and send you a confirmation email with your
+            booking details.
+          </p>
+          <div className="mt-4 space-y-1.5 border-t border-dashed border-amber-200 pt-4 text-xs text-slate-500">
+            <p className="flex items-start gap-1.5 font-semibold text-navy-800">
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" /> Please note:
+            </p>
+            <p>• Your room is not reserved until the advance payment has been verified.</p>
+            <p>• Payment should be made as soon as possible to avoid losing room availability.</p>
+            <p>• Once payment is verified, your booking status will automatically change from Pending Confirmation to Confirmed.</p>
+            <p>• If payment is not received within the required time, the booking request may be cancelled automatically.</p>
+            <p>• If you have any questions, please contact us via WhatsApp.</p>
+          </div>
+          <p className="mt-4 text-sm text-slate-600">
+            Thank you for choosing Jikmis Apartment. We look forward to welcoming you.
+          </p>
+          <p className="mt-3 text-xs text-slate-400">We've also sent this to your email — check your inbox (and spam folder).</p>
         </motion.div>
 
         <motion.div variants={fadeUp} initial="initial" animate="animate" transition={{ delay: 0.2 }} className="mt-8 text-center">

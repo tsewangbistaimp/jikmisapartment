@@ -5,14 +5,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { CalendarDays, Users, ShieldCheck, TrendingDown, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { publicBookingFormSchema, type PublicBookingFormValues } from "@/lib/schemas";
-import { formatCurrency, nightsBetween, cn } from "@/lib/utils";
+import { formatCurrency, nightsBetween, normalizePhoneE164, cn } from "@/lib/utils";
 import { maxGuestsFor } from "@/data/content";
 import { useRooms, useDateRangeAvailability } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useCreateBooking";
 import { useBookingPrice } from "@/hooks/useBookingPrice";
+import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { Label, Input, Textarea, Select, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AvailabilityCalendar } from "@/components/booking/AvailabilityCalendar";
+import { EmailVerificationField } from "@/components/booking/EmailVerificationField";
 
 export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   const navigate = useNavigate();
@@ -49,6 +51,8 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
   // pending request never does.
   const { available } = useDateRangeAvailability(roomId, checkIn, checkOut);
   const guestCount = watch("guest_count");
+  const email = watch("email");
+  const emailVerification = useEmailVerification(email ?? "");
   const maxGuests = selectedRoom ? maxGuestsFor(selectedRoom.room_type) : undefined;
   const overCapacity = !!maxGuests && guestCount > maxGuests;
   const datesSelected = !!checkIn && !!checkOut;
@@ -66,17 +70,23 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
       toast.error("Please select a room");
       return;
     }
+    if (!emailVerification.verified || !emailVerification.verificationToken) {
+      toast.error("Please verify your email address before booking");
+      return;
+    }
+    const { value: normalizedPhone } = normalizePhoneE164(values.phone);
     const result = await createBooking({
       p_room_id: values.room_id,
       p_check_in: values.check_in,
       p_check_out: values.check_out,
       p_guest_count: values.guest_count,
       p_full_name: values.full_name,
-      p_phone: values.phone,
+      p_phone: normalizedPhone,
       p_nationality: values.nationality || null,
       p_passport_number: values.passport_number || null,
       p_notes: values.notes || null,
-      p_email: values.email || null,
+      p_email: values.email,
+      p_verification_token: emailVerification.verificationToken,
     });
 
     if (result) {
@@ -260,13 +270,11 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
             <Input id="phone" placeholder="98XXXXXXXX" {...register("phone")} />
             <FieldError message={errors.phone?.message} />
           </div>
-          <div>
-            <Label htmlFor="email">Email (optional)</Label>
+          <div className="sm:col-span-2">
+            <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
             <FieldError message={errors.email?.message} />
-            {!errors.email && (
-              <p className="mt-1.5 text-xs text-slate-400">We'll email your booking confirmation here if you give us an address.</p>
-            )}
+            <EmailVerificationField email={email ?? ""} disabled={!!errors.email} verification={emailVerification} />
           </div>
           <div>
             <Label htmlFor="nationality">Nationality (optional)</Label>
@@ -298,7 +306,7 @@ export function BookingForm({ initialRoomId }: { initialRoomId?: string }) {
         // are free. The database's own overlap guard in create_public_booking()
         // is still the ultimate authority, but the button shouldn't invite
         // guests to race it.
-        disabled={!roomId || !datesSelected || available !== true || overCapacity}
+        disabled={!roomId || !datesSelected || available !== true || overCapacity || !emailVerification.verified}
       >
         {!roomId
           ? "Select a Room to Continue"

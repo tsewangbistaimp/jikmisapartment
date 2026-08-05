@@ -1,9 +1,14 @@
 import { z } from "zod";
+import { normalizePhoneE164 } from "@/lib/utils";
 
 // Mirrors the guest/date validation rules already used by the admin app's
-// bookingFormSchema (jikmis-apartment/src/lib/schemas.ts) — same minimums,
-// same phone pattern — so the public site never accepts data the staff
-// system would consider invalid.
+// bookingFormSchema (jikmis-apartment/src/lib/schemas.ts) — same minimums —
+// so the public site never accepts data the staff system would consider
+// invalid, plus the new verification-gate rules from the
+// email/phone-verification spec: a real, verifiable email is now required
+// (it's how the guest verifies before booking, and how payment-instruction
+// / confirmation emails reach them), and phone is validated toward E.164
+// via normalizePhoneE164() rather than just "looks phone-shaped".
 export const publicBookingFormSchema = z
   .object({
     // Without this in the schema, zod's resolver strips room_id from the
@@ -17,13 +22,13 @@ export const publicBookingFormSchema = z
     phone: z
       .string()
       .trim()
-      .min(7, "Enter a valid phone number")
-      .regex(/^[0-9+\-\s()]+$/, "Enter a valid phone number"),
-    // Optional — but if the guest gives one, it's used to send the booking
-    // confirmation/rejection email from Jikmis Apartment's Gmail account.
-    // Empty string is allowed (no email given) without failing validation;
-    // an actually-entered value must look like a real address.
-    email: z.union([z.string().trim().email("Enter a valid email address"), z.literal("")]).optional(),
+      .min(7, "Please enter a valid phone number")
+      .refine((v) => normalizePhoneE164(v).valid, "Please enter a valid phone number"),
+    // Required — this is what the guest verifies via the 6-digit email
+    // code before they can submit, and where payment-instruction /
+    // approval / rejection emails from Jikmis Apartment's Gmail account
+    // are sent.
+    email: z.string().trim().email("Please enter a valid email address"),
     nationality: z.string().trim().optional(),
     passport_number: z.string().trim().optional(),
     guest_count: z.number().int().min(1, "At least 1 guest"),

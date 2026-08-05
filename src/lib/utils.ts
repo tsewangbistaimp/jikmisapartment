@@ -39,3 +39,25 @@ export function addDaysISO(dateISO: string, days: number) {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+/** Normalizes a guest-typed phone number toward E.164
+ *  (https://en.wikipedia.org/wiki/E.164 — a leading '+', country code, up
+ *  to 15 digits total, no spaces/dashes/parens) and reports whether the
+ *  result is valid. Nepali guests overwhelmingly type a bare 10-digit local
+ *  number (e.g. "9841234567") without the country code, so this assumes
+ *  Nepal (+977) when no '+' or country code is present, rather than
+ *  rejecting the number outright — the property IS in Nepal, so this
+ *  matches real guest input instead of demanding a format nobody types by
+ *  hand. A number that already starts with '+' is normalized (whitespace/
+ *  dashes stripped) and validated as-is, so international guests who do
+ *  type their own country code still work correctly. */
+export function normalizePhoneE164(raw: string): { value: string; valid: boolean } {
+  const stripped = raw.trim().replace(/[\s\-()]/g, "");
+  let candidate = stripped;
+  if (!candidate.startsWith("+")) {
+    candidate = candidate.startsWith("977") ? `+${candidate}` : `+977${candidate.replace(/^0+/, "")}`;
+  }
+  const valid = /^\+[1-9]\d{6,14}$/.test(candidate);
+  return { value: candidate, valid };
+}
+
