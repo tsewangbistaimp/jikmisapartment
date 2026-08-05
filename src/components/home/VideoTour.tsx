@@ -41,7 +41,7 @@ export function VideoTour() {
           className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3"
         >
           {TOUR_VIDEOS.map((video) => (
-            <motion.div key={video.src} variants={staggerItem} className="overflow-hidden rounded-2xl bg-navy-900 shadow-lg">
+            <motion.div key={video.src} variants={staggerItem} className="overflow-hidden rounded-2xl bg-transparent shadow-lg">
               <video
                 autoPlay
                 muted
