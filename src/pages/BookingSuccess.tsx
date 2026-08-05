@@ -18,6 +18,8 @@ export default function BookingSuccess() {
     return <Navigate to="/rooms" replace />;
   }
 
+  const advanceAmount = booking.total_amount * 0.5;
+
   return (
     <Section className="py-24">
       <Container className="max-w-xl">
@@ -43,14 +45,12 @@ export default function BookingSuccess() {
             <span className="text-sm text-slate-400">Booking Number</span>
             <span className="font-mono text-base font-semibold text-navy-900">{booking.booking_number}</span>
           </div>
-
           <div className="flex items-center justify-between py-3">
             <span className="text-sm text-slate-500">Status</span>
             <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
               Pending Confirmation
             </span>
           </div>
-
           <div className="flex items-center justify-between py-3">
             <span className="flex items-center gap-2 text-sm text-slate-500">
               <DoorClosed className="h-4 w-4 text-gold-500" /> Room
@@ -109,6 +109,26 @@ export default function BookingSuccess() {
               <MessageCircle className="h-4 w-4" /> WhatsApp {SITE.phone}
             </Button>
           </a>
+
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-white p-5 text-center">
+            <p className="text-sm font-semibold text-navy-900">Scan to pay via eSewa</p>
+            <img
+              src="/images/esewa-qr.png"
+              alt="eSewa payment QR code — Tsewang Bista, 9862568506"
+              className="mx-auto mt-3 h-48 w-48 rounded-lg border border-slate-100"
+            />
+            <div className="mt-4 space-y-1 border-t border-dashed border-slate-200 pt-3 text-sm">
+              <p className="flex items-center justify-between text-slate-500">
+                <span>Total Amount</span>
+                <span className="font-semibold text-navy-800">{formatCurrency(booking.total_amount)}</span>
+              </p>
+              <p className="flex items-center justify-between text-slate-500">
+                <span>50% Advance to Pay Now</span>
+                <span className="font-semibold text-navy-800">{formatCurrency(advanceAmount)}</span>
+              </p>
+            </div>
+          </div>
+
           <p className="mt-4 text-sm leading-relaxed text-slate-600">
             Once we receive and verify your payment, we will confirm your booking and send you a confirmation email with your
             booking details.
