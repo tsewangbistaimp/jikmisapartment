@@ -4,6 +4,7 @@ import { PlayCircle, ArrowRight } from "lucide-react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { TOUR_VIDEOS, getRoomTypeKey } from "@/data/content";
 import { useRooms } from "@/hooks/useRooms";
+import { useMedia } from "@/hooks/useMedia";
 import { Container, Section, SectionHeading } from "@/components/ui/layout-primitives";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +13,11 @@ import { Button } from "@/components/ui/button";
 // visitors see it before the booking CTA. Same markup, same behavior.
 export function VideoTour() {
   const { rooms } = useRooms();
+  // Admin-managed tour videos replace the built-in clips once at least one is
+  // enabled; otherwise the original hardcoded videos still play.
+  const { items: managed } = useMedia(["video_tour"]);
+  const managedVideos = managed.filter((m) => m.media_type === "video").map((m) => ({ src: m.file_url, title: m.title }));
+  const tourVideos = managedVideos.length > 0 ? managedVideos : TOUR_VIDEOS;
 
   // Finds a live, bookable room matching this video's room type (e.g. the
   // "Single Studio Room" video matches any live room whose room_type
@@ -40,7 +46,7 @@ export function VideoTour() {
           viewport={{ once: true }}
           className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3"
         >
-          {TOUR_VIDEOS.map((video) => (
+          {tourVideos.map((video) => (
             <motion.div key={video.src} variants={staggerItem} className="overflow-hidden rounded-2xl bg-transparent shadow-lg">
               <video
                 autoPlay

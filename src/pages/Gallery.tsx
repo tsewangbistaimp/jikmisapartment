@@ -7,10 +7,16 @@ import { staggerContainer, staggerItem, scaleFade, fadeIn } from "@/lib/motion";
 import { Container, Section, SectionHeading } from "@/components/ui/layout-primitives";
 import { PageSpinner, EmptyState } from "@/components/ui/misc";
 import { PROPERTY_GALLERY } from "@/data/content";
+import { useMedia } from "@/hooks/useMedia";
 
 export default function Gallery() {
   useSEO("Gallery", "Browse real photos of Jikmis Apartment, our serviced apartment in Boudha — rooms, cafe, and rooftop.");
   const { rooms, loading } = useRooms();
+  // Admin-managed images (Media Management) replace the built-in list once at
+  // least one is enabled; otherwise the original hardcoded photos still show.
+  const { items: managed } = useMedia(["gallery", "cafe", "rooms"]);
+  const managedImages = managed.filter((m) => m.media_type === "image").map((m) => ({ url: m.file_url, caption: m.caption || m.title }));
+  const propertyGallery = managedImages.length > 0 ? managedImages : PROPERTY_GALLERY;
   const [active, setActive] = React.useState<{ url: string; caption: string } | null>(null);
 
   const images = rooms.filter((r) => r.image_url).map((r) => ({ url: r.image_url as string, caption: `Room ${r.room_number} — ${r.room_type}` }));
@@ -74,7 +80,7 @@ export default function Gallery() {
             viewport={{ once: true }}
             className="mt-10 columns-1 gap-4 sm:columns-2 lg:columns-3"
           >
-            {PROPERTY_GALLERY.map((img, i) => (
+            {propertyGallery.map((img, i) => (
               <motion.button
                 key={i}
                 variants={staggerItem}
