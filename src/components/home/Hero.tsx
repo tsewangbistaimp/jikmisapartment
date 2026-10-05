@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/layout-primitives";
+import { useMedia } from "@/hooks/useMedia";
 
 // Rooftop shot plus two real room photos, so the hero shows the property
 // and the rooms guests are actually booking.
@@ -15,8 +16,9 @@ const HERO_IMAGES = [
 
 const SLIDE_INTERVAL_MS = 5000;
 
-function HeroSlideshow() {
+function HeroSlideshow({ images = HERO_IMAGES }: { images?: { src: string; alt: string }[] }) {
   const [index, setIndex] = React.useState(0);
+  const HERO_IMAGES = images;
 
   React.useEffect(() => {
     const id = setInterval(() => setIndex((i) => (i + 1) % HERO_IMAGES.length), SLIDE_INTERVAL_MS);
@@ -52,9 +54,28 @@ function HeroSlideshow() {
 }
 
 export function Hero() {
+  // Admin-managed banner (Media Management → "Home Banner"): a video wins,
+  // then banner images; with nothing enabled the original slideshow shows.
+  const { items: banner } = useMedia(["banner"]);
+  const bannerVideo = banner.find((m) => m.media_type === "video");
+  const bannerImages = banner.filter((m) => m.media_type === "image").map((m) => ({ src: m.file_url, alt: m.caption || m.title }));
   return (
     <section className="relative flex min-h-screen items-center overflow-hidden bg-navy-900">
-      <HeroSlideshow />
+      {bannerVideo ? (
+        <video
+          key={bannerVideo.file_url}
+          src={bannerVideo.file_url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-label={bannerVideo.title}
+          className="absolute inset-0 h-full w-full object-cover opacity-60"
+        />
+      ) : (
+        <HeroSlideshow images={bannerImages.length > 0 ? bannerImages : HERO_IMAGES} />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/70 to-navy-950/40" />
       <div className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-full bg-gold-500/10 blur-3xl" />
 
