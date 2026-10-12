@@ -67,9 +67,6 @@ export default function Contact() {
               </Button>
             </a>
 
-            <div className="mt-8 overflow-hidden rounded-3xl border border-slate-100 shadow-lg">
-              <iframe title="Map" src={SITE.mapEmbedUrl} className="h-64 w-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-            </div>
           </motion.div>
 
           <motion.form
