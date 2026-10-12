@@ -8,6 +8,7 @@ import { Container } from "@/components/ui/layout-primitives";
 // Rooftop shot plus two real room photos, so the hero shows the property
 // and the rooms guests are actually booking.
 const HERO_IMAGES = [
+  { src: "/images/jikmis/banner/jikmis-banner-boudha-sunset.jpg", alt: "Boudhanath Stupa at sunset, seen from Jikmis Apartment" },
   { src: "/images/jikmis/gallery/jikmis-rooftop-terrace-view.jpg", alt: "Rooftop terrace at Jikmis Apartment" },
   { src: "/images/jikmis/family-room-living.jpeg", alt: "Family Room living area at Jikmis Apartment" },
   { src: "/images/jikmis/double-studio-lounge.jpeg", alt: "Double Studio lounge at Jikmis Apartment" },
