@@ -2,6 +2,31 @@ import * as React from "react";
 import { supabase } from "@/lib/supabase";
 import type { Room } from "@/lib/database.types";
 
+
+/** Calls `fn` at most once after a burst of calls settles (default 400ms).
+ *  A single admin action — e.g. saving a room with a new photo — can write
+ *  the same row several times in a row, and each write fires a realtime
+ *  event; without this, every event triggered its own full refetch and
+ *  re-render, which looked like the page "reloading again and again". */
+function useDebounced(fn: () => void, delay = 400) {
+  const fnRef = React.useRef(fn);
+  fnRef.current = fn;
+  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+  return React.useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => fnRef.current(), delay);
+  }, [delay]);
+}
+
+/** Only replaces state when the fetched data actually differs, so an
+ *  unchanged refetch never re-renders (or re-animates) the page. */
+function sameJSON(a: unknown, b: unknown) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 /** Loads every room the public "rooms_public_select" policy allows (see
  *  20260801070000_public_booking_website.sql) — i.e. the exact same `rooms`
  *  table the admin app uses, read-only. Rooms under maintenance are excluded
@@ -28,7 +53,8 @@ export function useRooms() {
   const load = React.useCallback(async () => {
     const { data, error } = await supabase.from("rooms").select("*").order("price", { ascending: true });
     if (error) setError(error.message);
-    setRooms((data as Room[]) ?? []);
+    const next = (data as Room[]) ?? [];
+    setRooms((prev) => (sameJSON(prev, next) ? prev : next));
     setLoading(false);
   }, []);
 
@@ -36,15 +62,16 @@ export function useRooms() {
     load();
   }, [load]);
 
+  const reloadSoon = useDebounced(load);
   React.useEffect(() => {
     const channel = supabase
       .channel(`public-rooms-live-${instanceId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, reloadSoon)
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [load, instanceId]);
+  }, [reloadSoon, instanceId]);
 
   return { rooms, loading, error };
 }
@@ -62,7 +89,8 @@ export function useRoom(roomId: string | undefined) {
     }
     const { data, error } = await supabase.from("rooms").select("*").eq("id", roomId).single();
     if (error) setError(error.message);
-    setRoom((data as Room) ?? null);
+    const next = (data as Room) ?? null;
+    setRoom((prev) => (sameJSON(prev, next) ? prev : next));
     setLoading(false);
   }, [roomId]);
 
@@ -70,6 +98,7 @@ export function useRoom(roomId: string | undefined) {
     load();
   }, [load]);
 
+  const reloadSoon = useDebounced(load);
   React.useEffect(() => {
     if (!roomId) return;
     // instanceId keeps this collision-proof if the same room is ever
@@ -77,12 +106,12 @@ export function useRoom(roomId: string | undefined) {
     // the crash this pattern otherwise causes).
     const channel = supabase
       .channel(`public-room-${roomId}-${instanceId}-live`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomId}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomId}` }, reloadSoon)
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, load, instanceId]);
+  }, [roomId, reloadSoon, instanceId]);
 
   return { room, loading, error };
 }
@@ -105,22 +134,23 @@ export function useRoomsAvailabilityBadges() {
     for (const row of (data as { room_id: string; badge: AvailabilityBadge }[]) ?? []) {
       map[row.room_id] = row.badge;
     }
-    setBadges(map);
+    setBadges((prev) => (sameJSON(prev, map) ? prev : map));
   }, []);
 
   React.useEffect(() => {
     load();
   }, [load]);
 
+  const reloadSoon = useDebounced(load);
   React.useEffect(() => {
     const channel = supabase
       .channel(`rooms-availability-badges-live-${instanceId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, reloadSoon)
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [load, instanceId]);
+  }, [reloadSoon, instanceId]);
 
   return badges;
 }
