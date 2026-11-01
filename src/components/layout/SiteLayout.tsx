@@ -3,6 +3,7 @@ import { useLocation, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ShakeContact } from "@/components/layout/ShakeContact";
 import { pageVariants } from "@/lib/motion";
 
 export function SiteLayout() {
@@ -21,6 +22,7 @@ export function SiteLayout() {
         </motion.main>
       </AnimatePresence>
       <Footer />
+      <ShakeContact />
     </div>
   );
 }
