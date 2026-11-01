@@ -15,6 +15,9 @@ const REVERSALS_NEEDED = 4; // direction flips needed (about right-left-right)
 const WINDOW_MS = 1500; // all flips must happen within this time
 const MIN_FLIP_GAP_MS = 40; // ignore sensor noise flipping faster than this
 const COOLDOWN_MS = 3000; // after opening, ignore further shakes briefly
+// Number shown and dialled by the "Call us" button (WhatsApp keeps SITE.phone).
+const CALL_NUMBER_DISPLAY = "+977 9863594966";
+const CALL_NUMBER_TEL = "tel:+9779863594966";
 const IOS_DENIED_KEY = "jikmis-shake-permission-denied";
 
 type MotionWithPermission = typeof DeviceMotionEvent & { requestPermission?: () => Promise<"granted" | "denied"> };
@@ -127,7 +130,6 @@ export function ShakeContact() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const telHref = `tel:${SITE.phone.replace(/[^+\d]/g, "")}`;
 
   return (
     <>
@@ -182,7 +184,7 @@ export function ShakeContact() {
                 </span>
               </a>
               <a
-                href={telHref}
+                href={CALL_NUMBER_TEL}
                 className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-navy-50 px-4 py-3 transition-colors hover:bg-navy-100"
               >
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-navy-900 text-white">
@@ -190,7 +192,7 @@ export function ShakeContact() {
                 </span>
                 <span>
                   <span className="block text-sm font-semibold text-slate-900">Call us</span>
-                  <span className="block text-xs text-slate-500">{SITE.phone}</span>
+                  <span className="block text-xs text-slate-500">{CALL_NUMBER_DISPLAY}</span>
                 </span>
               </a>
             </div>
