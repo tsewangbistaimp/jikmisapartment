@@ -3,65 +3,91 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, Phone, X } from "lucide-react";
 import { SITE } from "@/data/content";
 
-// Shake gesture: the phone is flicked right, then left, then right again
-// (three alternating sideways strokes inside a short window). Uses the
-// browser's DeviceMotion sensor, so it only works on phones/tablets over
-// HTTPS; on desktop nothing happens and nothing is shown.
-const STROKE_THRESHOLD = 9; // m/s² of sideways acceleration that counts as a stroke
-const WINDOW_MS = 1800; // all three strokes must happen within this time
-const STROKE_GAP_MS = 120; // ignore the same flick being counted twice
-const COOLDOWN_MS = 2500; // after opening, ignore further shakes briefly
+// Shake gesture: the phone is flicked right, then left, then right again.
+// A single sideways flick makes the sensor swing one way (speeding up) and
+// then the other (slowing down), so right-left-right shows up as roughly
+// four or more quick direction reversals. We count those reversals on the
+// sideways axis within a short window. Uses the browser's DeviceMotion
+// sensor, so it only works on phones/tablets over HTTPS; on desktop nothing
+// happens. Add ?shakedebug=1 to the URL to see live sensor readings.
+const MIN_SWING = 5; // m/s² — smaller movements are ignored as hand jitter
+const REVERSALS_NEEDED = 4; // direction flips needed (about right-left-right)
+const WINDOW_MS = 1500; // all flips must happen within this time
+const MIN_FLIP_GAP_MS = 40; // ignore sensor noise flipping faster than this
+const COOLDOWN_MS = 3000; // after opening, ignore further shakes briefly
 const IOS_DENIED_KEY = "jikmis-shake-permission-denied";
 
 type MotionWithPermission = typeof DeviceMotionEvent & { requestPermission?: () => Promise<"granted" | "denied"> };
 
 export function ShakeContact() {
   const [open, setOpen] = React.useState(false);
-  const strokes = React.useRef<{ dir: 1 | -1; t: number }[]>([]);
+  const [debug, setDebug] = React.useState<string | null>(null);
+  const flips = React.useRef<number[]>([]);
+  const lastSign = React.useRef(0);
   const lastOpen = React.useRef(0);
+  const gravity = React.useRef({ x: 0, y: 0 });
+  const events = React.useRef(0);
+  const showDebug = typeof window !== "undefined" && window.location.search.includes("shakedebug");
 
   // Attach the motion listener (only if the sensor exists).
   React.useEffect(() => {
-    if (typeof window === "undefined" || !("DeviceMotionEvent" in window)) return;
+    if (typeof window === "undefined" || !("DeviceMotionEvent" in window)) {
+      if (showDebug) setDebug("No DeviceMotionEvent in this browser");
+      return;
+    }
 
     const onMotion = (e: DeviceMotionEvent) => {
-      // Prefer acceleration without gravity; fall back to the gravity-included
-      // value (x axis is sideways when the phone is held upright).
-      const x = e.acceleration?.x ?? e.accelerationIncludingGravity?.x ?? 0;
-      if (Math.abs(x) < STROKE_THRESHOLD) return;
+      events.current += 1;
+      // Prefer acceleration without gravity. Some phones don't provide it, so
+      // fall back to the gravity-included value with gravity filtered out.
+      const lin = e.acceleration;
+      const g = e.accelerationIncludingGravity;
+      let x = 0;
+      let y = 0;
+      if (lin && lin.x != null && lin.y != null) {
+        x = lin.x;
+        y = lin.y;
+      } else if (g && g.x != null && g.y != null) {
+        gravity.current.x = 0.8 * gravity.current.x + 0.2 * g.x;
+        gravity.current.y = 0.8 * gravity.current.y + 0.2 * g.y;
+        x = g.x - gravity.current.x;
+        y = g.y - gravity.current.y;
+      } else {
+        return;
+      }
+      // Sideways axis: whichever of x/y is moving more (covers landscape too).
+      const v = Math.abs(x) >= Math.abs(y) ? x : y;
+      if (showDebug && events.current % 5 === 0) {
+        setDebug(`events ${events.current} · v ${v.toFixed(1)} · flips ${flips.current.length}`);
+      }
+      if (Math.abs(v) < MIN_SWING) return;
+
       const now = Date.now();
       if (now - lastOpen.current < COOLDOWN_MS) return;
+      const sign = v > 0 ? 1 : -1;
+      if (sign === lastSign.current) return;
+      lastSign.current = sign;
 
-      const dir: 1 | -1 = x > 0 ? 1 : -1;
-      const list = strokes.current.filter((s) => now - s.t < WINDOW_MS);
-      const last = list[list.length - 1];
-      if (last && last.dir === dir) {
-        // Same direction still moving — not a new stroke.
-        strokes.current = list;
+      const recent = flips.current.filter((t) => now - t < WINDOW_MS);
+      const last = recent[recent.length - 1];
+      if (last !== undefined && now - last < MIN_FLIP_GAP_MS) {
+        flips.current = recent;
         return;
       }
-      if (last && now - last.t < STROKE_GAP_MS) {
-        strokes.current = list;
-        return;
-      }
-      list.push({ dir, t: now });
-      strokes.current = list;
+      recent.push(now);
+      flips.current = recent;
 
-      // Need three strokes that alternate: right-left-right (or left-right-left,
-      // depending on how the phone reports the axis).
-      if (list.length >= 3) {
-        const [a, b, c] = list.slice(-3);
-        if (a.dir !== b.dir && b.dir !== c.dir) {
-          strokes.current = [];
-          lastOpen.current = now;
-          setOpen(true);
-        }
+      if (recent.length >= REVERSALS_NEEDED) {
+        flips.current = [];
+        lastSign.current = 0;
+        lastOpen.current = now;
+        setOpen(true);
       }
     };
 
     window.addEventListener("devicemotion", onMotion);
     return () => window.removeEventListener("devicemotion", onMotion);
-  }, []);
+  }, [showDebug]);
 
   // iPhones only deliver motion events after the visitor grants permission,
   // and the browser only allows asking from a tap. So on iOS we ask once, on
@@ -104,6 +130,12 @@ export function ShakeContact() {
   const telHref = `tel:${SITE.phone.replace(/[^+\d]/g, "")}`;
 
   return (
+    <>
+      {showDebug && (
+        <div className="fixed left-2 top-2 z-[80] rounded bg-black/80 px-2 py-1 text-[11px] text-white">
+          shake debug: {debug ?? "waiting for sensor… (iPhone: tap the page once and allow motion)"}
+        </div>
+      )}
     <AnimatePresence>
       {open && (
         <motion.div
@@ -166,5 +198,6 @@ export function ShakeContact() {
         </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 }
