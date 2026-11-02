@@ -5,7 +5,7 @@ import { useRoom, useRooms } from "@/hooks/useRooms";
 import { useSEO } from "@/hooks/useSEO";
 import { formatCurrency, cn } from "@/lib/utils";
 import { fadeUp } from "@/lib/motion";
-import { AMENITIES, ROOM_TYPE_PHOTOS, maxGuestsFor, getRoomTypeKey } from "@/data/content";
+import { AMENITIES, ROOM_TYPE_PHOTOS, maxGuestsFor, monthlyRateFor, getRoomTypeKey } from "@/data/content";
 import { staggerContainer } from "@/lib/motion";
 import { Container, Section } from "@/components/ui/layout-primitives";
 import { PageSpinner, EmptyState } from "@/components/ui/misc";
@@ -85,6 +85,12 @@ export default function RoomDetails() {
             </div>
 
             <p className="mt-6 text-base leading-relaxed text-slate-600">{describeRoom(room.room_type)}</p>
+
+            {monthlyRateFor(room.room_type) !== undefined && (
+              <p className="mt-4 rounded-2xl border border-gold-200 bg-gold-50/60 px-4 py-3 text-sm text-slate-700">
+                <span className="font-semibold text-navy-900">Monthly rate (30 days): {formatCurrency(monthlyRateFor(room.room_type) as number)}</span>
+              </p>
+            )}
 
             <p className="mt-10 text-sm font-semibold uppercase tracking-wide text-navy-800">What's Included</p>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">

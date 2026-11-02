@@ -192,6 +192,20 @@ export const ROOM_TYPE_MAX_GUESTS: Record<string, number> = {
   family: 5,
 };
 
+// Monthly (30-day) rate per room type, in NPR. The `rooms` table has no
+// monthly-rate column, so these are set here by the owner (nightly prices
+// still always come from the live `room.price` field).
+export const ROOM_TYPE_MONTHLY_RATE: Record<string, number> = {
+  single: 37000,
+  double: 47000,
+  family: 65000,
+};
+
+export function monthlyRateFor(roomType: string): number | undefined {
+  const key = getRoomTypeKey(roomType);
+  return key ? ROOM_TYPE_MONTHLY_RATE[key] : undefined;
+}
+
 export function maxGuestsFor(roomType: string): number | undefined {
   const key = getRoomTypeKey(roomType);
   return key ? ROOM_TYPE_MAX_GUESTS[key] : undefined;
