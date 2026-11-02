@@ -13,7 +13,7 @@ export default function Rooms() {
 
   return (
     <div>
-      <div className="bg-navy-900 pb-16 pt-32 text-center text-white sm:pt-40">
+      <div className="page-hero pb-16 pt-32 text-center sm:pt-40">
         <Container>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold-400">Our Rooms</p>
           <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Find Your Perfect Stay</h1>

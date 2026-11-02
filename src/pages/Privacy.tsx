@@ -6,7 +6,7 @@ export default function Privacy() {
   useSEO("Privacy Policy");
   return (
     <div>
-      <div className="bg-navy-900 pb-16 pt-32 text-center text-white sm:pt-40">
+      <div className="page-hero pb-16 pt-32 text-center sm:pt-40">
         <Container>
           <h1 className="font-display text-4xl font-semibold sm:text-5xl">Privacy Policy</h1>
         </Container>

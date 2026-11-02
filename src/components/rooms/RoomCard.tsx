@@ -22,7 +22,7 @@ export function RoomCard({ room, badge }: { room: Room; badge?: AvailabilityBadg
   return (
     <motion.div
       variants={staggerItem}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm transition-shadow hover:shadow-xl"
+      className="group flex flex-col overflow-hidden soft-card rounded-3xl transition-shadow hover:shadow-xl"
     >
       <div className="relative h-56 w-full overflow-hidden">
         {room.image_url ? (

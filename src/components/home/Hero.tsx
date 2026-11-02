@@ -32,7 +32,7 @@ function HeroSlideshow() {
           src={HERO_IMAGES[index].src}
           alt={HERO_IMAGES[index].alt}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.45 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.2, ease: "easeInOut" }}
           className="absolute inset-0 h-full w-full object-cover"
@@ -44,7 +44,7 @@ function HeroSlideshow() {
             key={img.src}
             onClick={() => setIndex(i)}
             aria-label={`Show slide ${i + 1}`}
-            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-gold-400" : "w-1.5 bg-white/40"}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-gold-400" : "w-1.5 bg-white/50 lg:bg-navy-900/20"}`}
           />
         ))}
       </div>
@@ -54,22 +54,28 @@ function HeroSlideshow() {
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-screen items-center overflow-hidden bg-navy-900">
+    <section className="relative flex min-h-screen items-center overflow-hidden bg-navy-900 lg:bg-white">
       <HeroSlideshow />
-      <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/70 to-navy-950/40" />
+      {/* Phones: image fills the screen with a dark fade for readable white text. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-black/75 lg:hidden" />
+      {/* Desktop: airy white fade from the left so dark text sits on a light surface. */}
+      <div
+        className="absolute inset-0 hidden lg:block"
+        style={{ background: "linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.94) 36%, rgba(255,255,255,0.35) 62%, rgba(255,255,255,0) 82%)" }}
+      />
       <div className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-full bg-gold-500/10 blur-3xl" />
 
-      <Container className="relative z-20 pt-24 text-white">
+      <Container className="relative z-20 pt-24 text-white lg:text-navy-900">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
           <div className="mb-6 flex items-center gap-2 text-gold-400">
             <MapPin className="h-4 w-4" />
-            <span className="text-sm text-navy-200">Jikmis Apartment · Boudha, Kathmandu — steps from Boudhanath Stupa</span>
+            <span className="text-sm text-white/85 lg:text-navy-500">Jikmis Apartment · Boudha, Kathmandu — steps from Boudhanath Stupa</span>
           </div>
 
           <h1 className="max-w-2xl font-display text-5xl font-semibold leading-[1.1] sm:text-6xl lg:text-7xl">
-            Your Apartment in Boudha, <span className="text-gold-400">Steps From the Stupa</span>
+            Your Apartment in Boudha, <span className="text-gold-300 lg:text-gold-500">Steps From the Stupa</span>
           </h1>
-          <p className="mt-6 max-w-lg text-lg leading-relaxed text-navy-200">
+          <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/85 lg:text-navy-500">
             Jikmis Apartment offers fully-equipped serviced apartments in Boudha, Kathmandu, designed for comfort whether you're staying a night or a month. Book directly, always at our best rate.
           </p>
 
@@ -80,7 +86,7 @@ export function Hero() {
               </Button>
             </Link>
             <Link to="/about">
-              <Button size="lg" variant="outlineLight" className="w-full sm:w-auto">
+              <Button size="lg" variant="outlineLight" className="w-full sm:w-auto lg:border-navy-200 lg:bg-white/80 lg:text-navy-800 lg:hover:bg-white">
                 Discover More
               </Button>
             </Link>

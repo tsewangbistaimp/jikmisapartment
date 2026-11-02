@@ -8,9 +8,9 @@ const ICONS = [BadgeCheck, MapPinned, Clock3, Sparkles];
 
 export function WhyChooseUs() {
   return (
-    <Section className="bg-navy-900 text-white">
+    <Section className="bg-transparent">
       <Container>
-        <SectionHeading eyebrow="Why Choose Us" title="The Jikmis Apartment Difference" align="center" className="[&_h2]:text-white [&_p]:text-navy-300" />
+        <SectionHeading eyebrow="Why Choose Us" title="The Jikmis Apartment Difference" align="center" />
 
         <motion.div
           variants={staggerContainer(100)}
@@ -22,12 +22,12 @@ export function WhyChooseUs() {
           {WHY_CHOOSE_US.map((item, i) => {
             const Icon = ICONS[i % ICONS.length];
             return (
-              <motion.div key={item.title} variants={staggerItem} className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-navy-900">
-                  <Icon className="h-6 w-6" />
+              <motion.div key={item.title} variants={staggerItem} className="soft-card rounded-3xl p-6 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center text-gold-500">
+                  <Icon className="h-9 w-9" strokeWidth={1.25} />
                 </div>
-                <p className="mt-5 font-display text-lg font-semibold">{item.title}</p>
-                <p className="mt-2 text-sm leading-relaxed text-navy-300">{item.description}</p>
+                <p className="mt-4 font-display text-xl font-semibold text-navy-900">{item.title}</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">{item.description}</p>
               </motion.div>
             );
           })}

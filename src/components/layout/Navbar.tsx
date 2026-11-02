@@ -48,7 +48,7 @@ export function Navbar() {
           >
             <Building2 className="h-5 w-5" />
           </span>
-          <span className={cn("font-display text-lg font-semibold tracking-wide", solid ? "text-navy-900" : "text-white")}>
+          <span className={cn("font-display text-lg font-semibold tracking-wide", solid ? "text-navy-900" : "text-white lg:text-navy-900")}>
             Jikmis Apartment
           </span>
         </Link>
@@ -62,8 +62,8 @@ export function Navbar() {
               className={({ isActive }) =>
                 cn(
                   "text-sm font-medium tracking-wide transition-colors",
-                  solid ? "text-navy-700 hover:text-gold-600" : "text-white/90 hover:text-white",
-                  isActive && (solid ? "text-gold-600" : "text-white")
+                  "text-navy-700 hover:text-gold-600",
+                  isActive && "text-gold-600"
                 )
               }
             >

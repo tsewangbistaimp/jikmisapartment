@@ -9,9 +9,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 shadow-sm hover:from-gold-400 hover:to-gold-500",
+        primary: "bg-gold-500 text-white shadow-[0_8px_20px_-8px_rgba(217,132,60,0.8)] hover:bg-gold-600",
         navy: "bg-navy-800 text-white shadow-sm hover:bg-navy-700",
-        outline: "border border-navy-200 text-navy-800 hover:bg-navy-50",
+        outline: "border border-navy-200 bg-white/70 text-navy-800 hover:bg-white",
         outlineLight: "border border-white/70 text-white hover:bg-white/10",
         ghost: "text-navy-700 hover:bg-navy-50",
       },
