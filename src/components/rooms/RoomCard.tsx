@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { DoorClosed, Users, ArrowRight } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { staggerItem } from "@/lib/motion";
-import { maxGuestsFor } from "@/data/content";
+import { maxGuestsFor, monthlyRateFor } from "@/data/content";
 import type { Room } from "@/lib/database.types";
 import type { AvailabilityBadge } from "@/hooks/useRooms";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,11 @@ export function RoomCard({ room, badge }: { room: Room; badge?: AvailabilityBadg
           <span className="font-display text-2xl font-semibold text-navy-900">{formatCurrency(room.price)}</span>
           <span className="text-sm text-slate-400">/ night</span>
         </div>
+        {monthlyRateFor(room.room_type) !== undefined && (
+          <p className="mt-1 text-sm text-slate-500">
+            <span className="font-semibold text-navy-800">{formatCurrency(monthlyRateFor(room.room_type) as number)}</span> / month (30 days)
+          </p>
+        )}
 
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           <Link to={`/rooms/${room.id}`} className="flex-1">
